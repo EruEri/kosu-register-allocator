@@ -1,0 +1,3 @@
+(library
+ (public_name register_allocator)
+ (name register_allocator))
