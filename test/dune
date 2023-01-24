@@ -1,2 +1,4 @@
 (test
- (name register_allocator))
+ (name register_allocator)
+ (libraries cfg)
+ )
