@@ -1,18 +1,47 @@
 module StringSet = Set.Make(String)
 
 module type Cfg_Sig = sig
-  type t
   type tac_typed_rvalue
   type tac_typed_expression
   type rktype
 
+  module TypeIdentifierSet : 
+    sig include Set.S with type t = (string * rktype)
+  end
+
+
+  type cfg_statement =
+  | CFG_STacDeclaration of { identifier : string; trvalue : tac_typed_rvalue }
+  | CFG_STacModification of { identifier : string; trvalue : tac_typed_rvalue }
+  | CFG_STDerefAffectation of { identifier : string; trvalue : tac_typed_rvalue }
+
+  type basic_block_end = 
+  | BBe_if of {
+    condition: tac_typed_expression;
+    if_label: string;
+    else_label: string;
+  }
+  | Bbe_return of tac_typed_expression
+
+  type 'a basic_block = {
+    label: string;
+    cfg_statements: 'a list;
+    followed_by: StringSet.t;
+    ending: basic_block_end option
+  }
+  module BasicBlockSet :
+    sig include Set.S with type t = (cfg_statement basic_block)
+  end  
+
+  type cfg = {
+    entry_block: string;
+    blocks: BasicBlockSet.t
+  }
 
   val compare_type: rktype -> rktype -> int
 
   val declaration_typed: string -> tac_typed_rvalue -> rktype
   val derefed_typed: string -> tac_typed_rvalue -> rktype
-
-  val tac_typed_expression: tac_typed_expression -> (string * rktype) option
 
   val ttrv_identifiers_used: tac_typed_rvalue -> (string * rktype) list
   val tte_idenfier_used: tac_typed_expression -> (string * rktype) list
@@ -33,11 +62,18 @@ module Make(CfgS : Cfg_Sig) = struct
   )
 
   open CfgS
+  open Util.Date
+
+  type liveness_info = string dated list
+
 
   type cfg_statement =
   | CFG_STacDeclaration of { identifier : string; trvalue : tac_typed_rvalue }
   | CFG_STacModification of { identifier : string; trvalue : tac_typed_rvalue }
   | CFG_STDerefAffectation of { identifier : string; trvalue : tac_typed_rvalue }
+
+  type cfg_live_statetment = 
+    cfg_statement * liveness_info
 
   type basic_block_end = 
   | BBe_if of {
@@ -47,16 +83,18 @@ module Make(CfgS : Cfg_Sig) = struct
   }
   | Bbe_return of tac_typed_expression
 
-  type basic_block = {
+  type 'a basic_block = {
     label: string;
-    cfg_statements: cfg_statement list;
+    cfg_statements: 'a list;
     followed_by: StringSet.t;
     ending: basic_block_end option
 
   }
+
+
   module BasicBlockSet = Set.Make(struct
-    type t = basic_block
-    let compare lhs rhs = String.compare lhs.label rhs.label
+    type t = cfg_statement basic_block
+    let compare (lhs: t) (rhs: t) = String.compare lhs.label rhs.label
     end)
 
   type cfg = {
@@ -65,8 +103,9 @@ module Make(CfgS : Cfg_Sig) = struct
   }
 
 
+
 let fetch_basic_block_from_label label_name bbset = 
-  bbset |> BasicBlockSet.find_first (fun bb -> bb.label = label_name) 
+  bbset |> BasicBlockSet.elements |> List.find (fun bb -> bb.label = label_name) 
 
 let basic_block_input_var basic_block = 
   let rec basic_block_cfg_statement_list ~created ~acc = function

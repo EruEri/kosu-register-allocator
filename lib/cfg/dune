@@ -1,2 +1,4 @@
 (library
- (name cfg))
+ (name cfg)
+ (libraries util)
+)
