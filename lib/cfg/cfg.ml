@@ -5,8 +5,8 @@ module type Cfg_Sig = sig
   type tac_typed_expression
   type rktype
 
-  module TypeIdentifierSet : 
-    sig include Set.S with type t = (string * rktype)
+  module TypedIdentifierSet : 
+    sig include Set.S with type elt = (string * rktype)
   end
 
 
@@ -30,7 +30,7 @@ module type Cfg_Sig = sig
     ending: basic_block_end option
   }
   module BasicBlockSet :
-    sig include Set.S with type t = (cfg_statement basic_block)
+    sig include Set.S with type elt = (cfg_statement basic_block)
   end  
 
   type cfg = {
@@ -50,58 +50,7 @@ end
 
 module Make(CfgS : Cfg_Sig) = struct
 
-
-
-  module TypedIdentifierSet = Set.Make (struct
-  type t = string * CfgS.rktype
-  let compare lhs rhs = 
-    let string_compare = compare (fst lhs) (fst rhs) in
-    if string_compare = 0 then CfgS.compare_type (snd lhs) (snd rhs)
-    else string_compare  
-  end
-  )
-
   open CfgS
-  open Util.Date
-
-  type liveness_info = string dated list
-
-
-  type cfg_statement =
-  | CFG_STacDeclaration of { identifier : string; trvalue : tac_typed_rvalue }
-  | CFG_STacModification of { identifier : string; trvalue : tac_typed_rvalue }
-  | CFG_STDerefAffectation of { identifier : string; trvalue : tac_typed_rvalue }
-
-  type cfg_live_statetment = 
-    cfg_statement * liveness_info
-
-  type basic_block_end = 
-  | BBe_if of {
-    condition: tac_typed_expression;
-    if_label: string;
-    else_label: string;
-  }
-  | Bbe_return of tac_typed_expression
-
-  type 'a basic_block = {
-    label: string;
-    cfg_statements: 'a list;
-    followed_by: StringSet.t;
-    ending: basic_block_end option
-
-  }
-
-
-  module BasicBlockSet = Set.Make(struct
-    type t = cfg_statement basic_block
-    let compare (lhs: t) (rhs: t) = String.compare lhs.label rhs.label
-    end)
-
-  type cfg = {
-    entry_block: string;
-    blocks: BasicBlockSet.t
-  }
-
 
 
 let fetch_basic_block_from_label label_name bbset = 
