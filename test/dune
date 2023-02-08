@@ -1,4 +1,3 @@
 (test
  (name register_allocator)
- (libraries cfg)
  )
