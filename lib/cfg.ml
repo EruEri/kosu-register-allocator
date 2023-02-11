@@ -31,13 +31,14 @@ module type Cfg_Sig = sig
     followed_by: StringSet.t;
     ending: basic_block_end option
   }
-  module BasicBlockSet :
-    sig include Set.S with type elt = (cfg_statement basic_block)
-  end  
+
+  module BasicBlockMap :
+    sig include Map.S with type key = string
+  end
 
   type cfg = {
     entry_block: string;
-    blocks: BasicBlockSet.t
+    blocks: (cfg_statement basic_block) BasicBlockMap.t
   }
 
   val compare_type: rktype -> rktype -> int
@@ -56,7 +57,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
   module Basic = struct
     let fetch_basic_block_from_label label_name bbset = 
-      bbset |> BasicBlockSet.elements |> List.find (fun bb -> bb.label = label_name) 
+      bbset |> BasicBlockMap.find label_name
     
     let basic_block_input_var ~out_vars basic_block = 
       let rec basic_block_cfg_statement_list ~killed ~generated = function
@@ -111,9 +112,11 @@ module Make(CfgS : Cfg_Sig) = struct
       let compare (lhs: t) (rhs: t) = String.compare lhs.basic_block.label rhs.basic_block.label
     end)
 
+    module BasicBlockDetailMap = Map.Make(String)
+
     type cfg_detail = {
       entry_block: string;
-      blocks_details: BasicBlockDetailSet.t
+      blocks_details: (cfg_statement basic_block_detail) BasicBlockDetailMap.t
     }
 
     
@@ -129,7 +132,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
     let of_cfg (cfg: cfg) = {
       entry_block = cfg.entry_block;
-      blocks_details = cfg.blocks |> BasicBlockSet.elements |> List.map (basic_block_detail_of_basic_block cfg.blocks) |> BasicBlockDetailSet.of_list
+      blocks_details = cfg.blocks |> BasicBlockMap.bindings |> List.map (fun (label, block) -> label,  basic_block_detail_of_basic_block cfg.blocks block) |> List.to_seq |> BasicBlockDetailMap.of_seq
       }
    end
 
