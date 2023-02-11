@@ -25,22 +25,6 @@ module type Cfg_Sig = sig
   | BBe_if of bbe_if
   | Bbe_return of tac_typed_expression
 
-  type 'a basic_block = {
-    label: string;
-    cfg_statements: 'a list;
-    followed_by: StringSet.t;
-    ending: basic_block_end option
-  }
-
-  module BasicBlockMap :
-    sig include Map.S with type key = string
-  end
-
-  type cfg = {
-    entry_block: string;
-    blocks: (cfg_statement basic_block) BasicBlockMap.t
-  }
-
   val compare_type: rktype -> rktype -> int
 
   val declaration_typed: string -> tac_typed_rvalue -> rktype
@@ -55,7 +39,24 @@ module Make(CfgS : Cfg_Sig) = struct
 
   open CfgS
 
+  module BasicBlockMap = Map.Make(String)
+
   module Basic = struct
+
+    type 'a basic_block = {
+      label: string;
+      cfg_statements: 'a list;
+      followed_by: StringSet.t;
+      ending: basic_block_end option
+    }
+
+
+    type cfg = {
+      entry_block: string;
+      blocks: (cfg_statement basic_block) BasicBlockMap.t;
+      parameters: TypedIdentifierSet.t;
+      locals_vars: TypedIdentifierSet.t;
+    }
     let fetch_basic_block_from_label label_name bbset = 
       bbset |> BasicBlockMap.find label_name
     
@@ -102,7 +103,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
    module Detail = struct
     type 'a basic_block_detail = {
-      basic_block: 'a basic_block;
+      basic_block: 'a Basic.basic_block;
       in_vars: TypedIdentifierSet.t;
       out_vars: TypedIdentifierSet.t;
     }
@@ -116,7 +117,9 @@ module Make(CfgS : Cfg_Sig) = struct
 
     type cfg_detail = {
       entry_block: string;
-      blocks_details: (cfg_statement basic_block_detail) BasicBlockDetailMap.t
+      blocks_details: (cfg_statement basic_block_detail) BasicBlockDetailMap.t;
+      parameters: TypedIdentifierSet.t;
+      locals_vars: TypedIdentifierSet.t;
     }
 
     
@@ -130,9 +133,11 @@ module Make(CfgS : Cfg_Sig) = struct
         out_vars;
       }
 
-    let of_cfg (cfg: cfg) = {
+    let of_cfg (cfg: Basic.cfg) = {
       entry_block = cfg.entry_block;
-      blocks_details = cfg.blocks |> BasicBlockMap.bindings |> List.map (fun (label, block) -> label,  basic_block_detail_of_basic_block cfg.blocks block) |> List.to_seq |> BasicBlockDetailMap.of_seq
+      blocks_details = cfg.blocks |> BasicBlockMap.bindings |> List.map (fun (label, block) -> label,  basic_block_detail_of_basic_block cfg.blocks block) |> List.to_seq |> BasicBlockDetailMap.of_seq;
+      parameters = cfg.parameters;
+      locals_vars = cfg.locals_vars;
       }
    end
 
