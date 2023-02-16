@@ -18,7 +18,7 @@ module Date = struct
 
   let add_date date dated = 
     match dated.start with
-    | None -> { dated with start = date }
-    | Some s -> set_end s dated
+    | None -> { dated with start = Some date }
+    | Some _ -> set_end date dated
   
 end
