@@ -7,8 +7,8 @@ module type Cfg_Sig = sig
 
   val compare: (string * rktype) -> (string * rktype) -> int
 
-  val declaration_typed: string -> tac_typed_rvalue -> rktype
-  val derefed_typed: string -> tac_typed_rvalue -> rktype
+  val declaration_typed: tac_typed_rvalue -> rktype
+  val derefed_typed:  tac_typed_rvalue -> rktype
 
   val ttrv_identifiers_used: tac_typed_rvalue -> (string * rktype) list
   val tte_idenfier_used: tac_typed_expression -> (string * rktype) list
@@ -18,29 +18,37 @@ end
 
 module Make(CfgS : Cfg_Sig) = struct
 
-  open CfgS
+  
+
+  module TypedIdentifierSet = Set.Make(struct
+    open CfgS
+    type t = (string * rktype)
+    let compare = CfgS.compare
+  end
+  )
+
+  type typed_variable = TypedIdentifierSet.elt
+
+
 
   type cfg_statement =
-  | CFG_STacDeclaration of { identifier : string; trvalue : tac_typed_rvalue }
-  | CFG_STacModification of { identifier : string; trvalue : tac_typed_rvalue }
-  | CFG_STDerefAffectation of { identifier : string; trvalue : tac_typed_rvalue }
+  | CFG_STacDeclaration of { identifier : string; trvalue : CfgS.tac_typed_rvalue }
+  | CFG_STacModification of { identifier : string; trvalue : CfgS.tac_typed_rvalue }
+  | CFG_STDerefAffectation of { identifier : string; trvalue : CfgS.tac_typed_rvalue }
 
   type bbe_if = {
-    condition: tac_typed_expression;
+    condition: CfgS.tac_typed_expression;
     if_label: string;
     else_label: string;
   }
 
   type basic_block_end = 
   | BBe_if of bbe_if
-  | Bbe_return of tac_typed_expression
+  | Bbe_return of CfgS.tac_typed_expression
 
 
 
-  module TypedIdentifierSet = Set.Make(struct
-    type t = (string * rktype)
-    let compare = CfgS.compare
-  end)
+
   module BasicBlockMap = Map.Make(String)
 
   module Basic = struct
@@ -68,6 +76,7 @@ module Make(CfgS : Cfg_Sig) = struct
     | CFG_STacModification {trvalue; _} -> CfgS.ttrv_identifiers_used trvalue
     
     let basic_block_input_var ~out_vars basic_block = 
+      let open CfgS in
       let rec basic_block_cfg_statement_list ~killed ~generated = function
       | [] ->
         basic_block.ending 
@@ -85,7 +94,7 @@ module Make(CfgS : Cfg_Sig) = struct
             if is_affectation trvalue then
               let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
               let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
-              let extented_killed_vars = TypedIdentifierSet.add (identifier, declaration_typed identifier trvalue) killed in
+              let extented_killed_vars = TypedIdentifierSet.add (identifier, declaration_typed trvalue) killed in
               let new_geneated = TypedIdentifierSet.union remove_block_create_variable_set generated in
               extented_killed_vars, new_geneated
             else 
@@ -148,6 +157,43 @@ module Make(CfgS : Cfg_Sig) = struct
    end
 
    module Liveness = struct
+
+    module LivenessInfo = struct
+      type liveness_info = ( typed_variable * bool ) list
+
+      let init map variable : liveness_info = variable |> List.map (fun v -> v, map v)
+
+      let is_alive (elt: typed_variable) info: bool = info |> List.assoc elt 
+
+      let is_dead elt info = not @@ is_alive elt info
+
+      let set_alive (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
+        let in_element, _ = e in
+        if 
+          CfgS.compare in_element elt = 0 then
+            in_element, true
+        else
+          e
+      )
+
+      let of_list l: liveness_info = l
+
+      let set_dead (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
+        let in_element, _ = e in
+        if 
+          CfgS.compare in_element elt = 0 then
+            in_element, false
+        else
+          e
+      )
+
+      let set_dead_of_list (elts: typed_variable list) info: liveness_info = 
+        elts |> List.fold_left (fun new_info var -> 
+          set_dead var new_info
+      ) info
+    end
+
+
     (* open Util *)
     (* type liveness_info = {
       variable: TypedIdentifierSet.elt;
@@ -165,6 +211,18 @@ module Make(CfgS : Cfg_Sig) = struct
      type cfg_liveness = liveness_info cfg_statement_info Detail.basic_block_detail
      type cfg_dated = dated_info cfg_statement_info Detail.basic_block_detail *)
 
+     type cfg_liveness_statement = {
+      cfg_statement: cfg_statement;
+      liveness_info: LivenessInfo.liveness_info
+     }
+
+     type cfg_liveness_detail = {
+      entry_block: string;
+      blocks_liveness_details: (cfg_liveness_statement Detail.basic_block_detail) BasicBlockMap.t;
+      parameters: TypedIdentifierSet.t;
+      locals_vars: TypedIdentifierSet.t;
+     }
+
      type liveness_var_block =
      | Always_alive
      | Die_at of int
@@ -173,10 +231,20 @@ module Make(CfgS : Cfg_Sig) = struct
      (**
       @returns : whenever the variable leaves the block
      *)
-     let does_outlive_block (elt: TypedIdentifierSet.elt) (bbd: cfg_statement Detail.basic_block_detail) = 
+     let does_outlives_block (elt: TypedIdentifierSet.elt) (bbd: cfg_statement Detail.basic_block_detail) = 
       TypedIdentifierSet.mem elt bbd.out_vars
 
-      let when_variable_dies ~start_from (elt: TypedIdentifierSet.elt) (bbd: cfg_statement Detail.basic_block_detail) = 
+
+    let dying_in_vars_in_block (bbd: cfg_statement Detail.basic_block_detail) = 
+      TypedIdentifierSet.diff bbd.in_vars bbd.out_vars
+
+    let does_in_vars_dies_in_block (elt: typed_variable) (bbd: cfg_statement Detail.basic_block_detail) = 
+      bbd
+      |> dying_in_vars_in_block
+      |> TypedIdentifierSet.mem elt
+
+      let when_variable_dies ~start_from (elt: typed_variable) (bbd: cfg_statement Detail.basic_block_detail) = 
+        let open CfgS in
         let (>>=) = Option.bind in
         let liveness =  bbd.basic_block.cfg_statements |> List.fold_left (fun (index, acc) stmt -> 
           let used_vars = Basic.stmt_identifiers_used stmt in
@@ -200,12 +268,138 @@ module Make(CfgS : Cfg_Sig) = struct
         |> Option.value ~default:liveness
 
 
-     let dated_basic_block_of_basic_block_detail dated_info_list (bbd: cfg_statement Detail.basic_block_detail) = 
-      let _when_to_die : (TypedIdentifierSet.elt, int) Hashtbl.t = Hashtbl.create 5 in
-      bbd.basic_block.cfg_statements |> List.fold_left_map (fun (_int, _dated_info_list) _stmt ->
-        failwith ""
-      ) (0, dated_info_list)
-     let of_cfg_details (_cfg: Detail.cfg_detail) = failwith ""
+      (**
+        @returns in how many statements the variable dies 
+        @raise Invalid_argument : if the variable outlive the block
+      *)
+      let when_variable_dies_unsafe ~start_from elt bdd = 
+        match when_variable_dies ~start_from elt bdd with
+        | Die_at n -> Some n
+        | Die_in_ending -> None
+        | Always_alive -> elt |> fst |> Printf.sprintf "The variable %s outlives the block" |> invalid_arg
+
+
+    (**
+    Remove the from the hashtable the variable that die at the times of [current]
+    @returns : List of dying variable at the times [current]    
+    *)
+    let fetch_dying_variable ~current map (): typed_variable list =
+      let removed =  Hashtbl.find_all map (Some current) in
+      let () = map |> Hashtbl.filter_map_inplace (fun key value -> 
+        if key = (Some current) then None
+        else Some value
+      )  in
+      removed
+
+    let merge_basic_block_map lmap rmap = 
+      BasicBlockMap.union (fun key m1 m2 ->
+        let () = Printf.eprintf "Conficiting label = %s\n" key in
+        if (m1 <> m2) then
+          failwith "Diff for key"
+        else
+          Some m1
+      ) lmap rmap
+
+
+    let dated_basic_block_of_basic_block_detail ~delete_useless_stmt dated_info_list (bbd: cfg_statement Detail.basic_block_detail) = 
+      let open CfgS in
+      let when_to_die_hashmap = bbd |> dying_in_vars_in_block |> TypedIdentifierSet.elements |> List.map (fun elt ->
+        when_variable_dies_unsafe ~start_from:0 elt bbd, elt
+      ) |> List.to_seq |> Hashtbl.of_seq in
+      
+      (* Be careful new statement are in the reversed order *)
+      bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
+        let dated_info_list = last_dated_info_list in
+        let listof_now_dying_var = fetch_dying_variable ~current:block_line_index when_to_die_hashmap () in
+        let date_info_updated_dying = LivenessInfo.set_dead_of_list listof_now_dying_var dated_info_list in
+        let next_line = block_line_index + 1 in
+        match stmt with
+        | CFG_STacDeclaration {identifier; trvalue} 
+        | CFG_STacModification {identifier; trvalue} -> 
+          let typed_variable = (identifier, declaration_typed trvalue) in
+          
+          begin match does_outlives_block typed_variable bbd with
+          | true -> begin 
+            let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
+            next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+          end
+          | false -> begin match CfgS.is_affectation trvalue with
+            | false -> next_line, {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, date_info_updated_dying
+            | true -> 
+              let in_how_many_times_it_dies = when_variable_dies_unsafe ~start_from:block_line_index typed_variable bbd in
+              let does_it_dies_now = in_how_many_times_it_dies |> Option.map (( = ) block_line_index) |> Option.value ~default:false in
+              if 
+                does_it_dies_now 
+              then
+                let updated_dead_liveinfo = (LivenessInfo.set_dead typed_variable date_info_updated_dying) in
+                next_line, 
+                ( if delete_useless_stmt then cfg_liveness_statements
+                else
+                  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements
+                )
+                ,  updated_dead_liveinfo
+              else
+                let () = Hashtbl.replace when_to_die_hashmap in_how_many_times_it_dies typed_variable in
+                let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
+                next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+           end 
+        end
+        | CFG_STDerefAffectation {identifier; trvalue} -> 
+          let typed_variable = (identifier, derefed_typed trvalue) in
+          let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
+          next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+      ) (0, ([]) , dated_info_list) |> fun (_, list, _) -> 
+        match list with
+        | [] -> [], dated_info_list
+        | t::_ as l -> List.rev l, t.liveness_info
+
+
+    let merge_liveness_info : LivenessInfo.liveness_info -> LivenessInfo.liveness_info -> LivenessInfo.liveness_info = List.map2 (fun (lhs_var, lhs_type) (_, rhs_type) -> 
+      (lhs_var, lhs_type <> rhs_type)
+    )
+
+    let rec basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info basic_blocks_map (bbd: cfg_statement Detail.basic_block_detail) = 
+
+    let open Detail in
+    if not @@ Hashtbl.mem visited bbd.basic_block.label 
+      then
+        let self_to_cfg_liveness, last_dated_info = dated_basic_block_of_basic_block_detail ~delete_useless_stmt dated_info bbd in
+        let basic_block_liveness =  {
+            in_vars = bbd.in_vars;
+            out_vars = bbd.out_vars;
+            basic_block = {
+              label = bbd.basic_block.label;
+              followed_by = bbd.basic_block.followed_by;
+              ending = bbd.basic_block.ending;
+              cfg_statements = self_to_cfg_liveness
+            }
+        }
+      in
+      let () = Hashtbl.replace visited bbd.basic_block.label () in
+      let singleton = BasicBlockMap.singleton (basic_block_liveness.basic_block.label) basic_block_liveness in
+      let converted_blocks_map = StringSet.fold (fun follow acc -> 
+        let follow_block = Basic.fetch_basic_block_from_label follow basic_blocks_map in
+        let follow_transformed_block = basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info:last_dated_info basic_blocks_map follow_block in
+        merge_basic_block_map acc follow_transformed_block
+      ) bbd.basic_block.followed_by singleton in 
+      converted_blocks_map
+    else
+      BasicBlockMap.empty
+
+    let of_cfg_details ~delete_useless_stmt (cfg: Detail.cfg_detail) =
+      let visited = Hashtbl.create 5 in 
+      let entry_block = Basic.fetch_basic_block_from_label cfg.entry_block cfg.blocks_details in
+      let liveness_info =  TypedIdentifierSet.fold (fun typed_var acc -> 
+        let is_parameters = TypedIdentifierSet.mem typed_var cfg.parameters in
+        (typed_var, is_parameters)::acc
+      ) cfg.locals_vars [] |> LivenessInfo.of_list in
+      let open Detail in
+      {
+        entry_block = cfg.entry_block;
+        parameters = cfg.parameters;
+        locals_vars = cfg.locals_vars;
+        blocks_liveness_details = basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info:liveness_info cfg.blocks_details entry_block
+      }
 
    end
 end
