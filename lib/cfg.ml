@@ -323,7 +323,7 @@ module Make(CfgS : Cfg_Sig) = struct
           begin match does_outlives_block typed_variable bbd with
           | true -> begin 
             let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
-            next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+            next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
           end
           | false -> begin match CfgS.is_affectation trvalue with
             | false -> next_line, {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, date_info_updated_dying
@@ -343,23 +343,23 @@ module Make(CfgS : Cfg_Sig) = struct
               else
                 let () = Hashtbl.replace when_to_die_hashmap in_how_many_times_it_dies typed_variable in
                 let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
-                next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+                next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
            end 
         end
         | CFG_STDerefAffectation {identifier; trvalue} -> 
           let typed_variable = (identifier, derefed_typed trvalue) in
           let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
-          next_line,  {cfg_statement = stmt; liveness_info = updated_alive_info}::cfg_liveness_statements, updated_alive_info
+          next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
       ) (0, ([]) , dated_info_list) |> fun (_, list, _) -> 
         match list with
         | [] -> [], dated_info_list
         | t::_ as l -> List.rev l, t.liveness_info
 
-
-    let merge_liveness_info : LivenessInfo.liveness_info -> LivenessInfo.liveness_info -> LivenessInfo.liveness_info = List.map2 (fun (lhs_var, lhs_type) (_, rhs_type) -> 
-      (lhs_var, lhs_type <> rhs_type)
-    )
-
+        
+    (*
+      Relie on the fac that a variable create in a branch block cannot be used in a following block
+      It's mostlt true for staticlly typed language but false for dynamic not like Python   
+    *)
     let rec basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info basic_blocks_map (bbd: cfg_statement Detail.basic_block_detail) = 
 
     let open Detail in
