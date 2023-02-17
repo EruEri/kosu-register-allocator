@@ -178,6 +178,8 @@ module Make(CfgS : Cfg_Sig) = struct
 
       let of_list l: liveness_info = l
 
+      let to_list l: ( typed_variable * bool ) list = l
+
       let set_dead (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
         let in_element, _ = e in
         if 
