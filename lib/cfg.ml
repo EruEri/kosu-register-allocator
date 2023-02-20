@@ -88,19 +88,22 @@ module Make(CfgS : Cfg_Sig) = struct
         |> TypedIdentifierSet.union (TypedIdentifierSet.diff out_vars killed)
       | stmt::q -> 
         begin match stmt with
-        | CFG_STacDeclaration {identifier; trvalue}  | CFG_STacModification {identifier; trvalue}
+        | CFG_STacDeclaration {identifier; trvalue} 
           -> 
             let extented_killed_vars, new_geneated =  
-            if is_affectation trvalue then
               let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
               let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
               let extented_killed_vars = TypedIdentifierSet.add (identifier, declaration_typed trvalue) killed in
               let new_geneated = TypedIdentifierSet.union remove_block_create_variable_set generated in
               extented_killed_vars, new_geneated
-            else 
-              killed, generated
             in
             basic_block_cfg_statement_list ~killed:extented_killed_vars ~generated:new_geneated q
+
+        | CFG_STacModification {identifier = _; trvalue} ->
+          let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
+          let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
+          let new_geneated = TypedIdentifierSet.union remove_block_create_variable_set generated in
+          basic_block_cfg_statement_list ~killed:killed ~generated:new_geneated q
         | CFG_STDerefAffectation {trvalue; identifier}   -> 
           let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
           let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
