@@ -314,7 +314,7 @@ module Make(CfgS : Cfg_Sig) = struct
         when_variable_dies_unsafe ~start_from:0 elt bbd, elt
       ) |> List.to_seq |> Hashtbl.of_seq in
 
-      let dated_info_list = LivenessInfo.init (fun typed_variable -> TypedIdentifierSet.mem typed_variable bbd.in_vars) (LivenessInfo.elements dated_info_list) in
+      let dated_info_list = LivenessInfo.init (fun typed_variable -> TypedIdentifierSet.mem typed_variable bbd.in_vars && LivenessInfo.is_alive typed_variable dated_info_list) (LivenessInfo.elements dated_info_list) in
       
       (* Be careful new statement are in the reversed order *)
       bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
@@ -357,10 +357,10 @@ module Make(CfgS : Cfg_Sig) = struct
           let typed_variable = (identifier, derefed_typed trvalue) in
           let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
           next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
-      ) (0, ([]) , dated_info_list) |> fun (_, list, _) -> 
+      ) (0, ([]) , dated_info_list) |> fun (_, list, latest_liveness_info) -> 
         match list with
         | [] -> [], dated_info_list
-        | t::_ as l -> List.rev l, t.liveness_info
+        | _::_ as l -> List.rev l, latest_liveness_info
 
         
     (*
