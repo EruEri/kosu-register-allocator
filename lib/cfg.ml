@@ -183,6 +183,8 @@ module Make(CfgS : Cfg_Sig) = struct
 
       let to_list l: ( typed_variable * bool ) list = l
 
+      let elements : liveness_info -> typed_variable list  = List.map fst 
+
       let set_dead (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
         let in_element, _ = e in
         if 
@@ -256,10 +258,10 @@ module Make(CfgS : Cfg_Sig) = struct
           if 
             used_vars |> List.exists (fun var -> elt |> CfgS.compare var |> ( = ) 0) 
           then
-            (index + 1, Die_at start_from)
+            (index + 1, Die_at (max start_from index))
           else
             (index + 1, acc)
-        ) (start_from, Die_at start_from) |> snd
+        ) (1, Die_at start_from) |> snd
       in
       bbd.basic_block.ending >>= (fun (Bbe_return tte | BBe_if {condition = tte; _}) -> 
         let used_vars = tte_idenfier_used tte in
@@ -311,6 +313,8 @@ module Make(CfgS : Cfg_Sig) = struct
       let when_to_die_hashmap = bbd |> dying_in_vars_in_block |> TypedIdentifierSet.elements |> List.map (fun elt ->
         when_variable_dies_unsafe ~start_from:0 elt bbd, elt
       ) |> List.to_seq |> Hashtbl.of_seq in
+
+      let dated_info_list = LivenessInfo.init (fun typed_variable -> TypedIdentifierSet.mem typed_variable bbd.in_vars) (LivenessInfo.elements dated_info_list) in
       
       (* Be careful new statement are in the reversed order *)
       bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
@@ -325,7 +329,7 @@ module Make(CfgS : Cfg_Sig) = struct
           
           begin match does_outlives_block typed_variable bbd with
           | true -> begin 
-            let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
+            let updated_alive_info = if CfgS.is_affectation trvalue then (LivenessInfo.set_alive typed_variable date_info_updated_dying) else date_info_updated_dying in
             next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
           end
           | false -> begin match CfgS.is_affectation trvalue with
