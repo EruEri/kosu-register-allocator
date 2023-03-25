@@ -76,17 +76,17 @@ module Make(CfgS : Cfg_Sig) = struct
 
   module Basic = struct
 
-    type 'a basic_block = {
+    type ('a, 'b) basic_block = {
       label: string;
       cfg_statements: 'a list;
       followed_by: StringSet.t;
-      ending: basic_block_end option
+      ending: 'b
     }
 
 
     type cfg = {
       entry_block: string;
-      blocks: (cfg_statement basic_block) BasicBlockMap.t;
+      blocks: (cfg_statement, basic_block_end option) basic_block BasicBlockMap.t;
       parameters: TypedIdentifierSet.t;
       locals_vars: TypedIdentifierSet.t;
     }
@@ -150,15 +150,15 @@ module Make(CfgS : Cfg_Sig) = struct
   end
 
    module Detail = struct
-    type 'a basic_block_detail = {
-      basic_block: 'a Basic.basic_block;
+    type ('a, 'b) basic_block_detail = {
+      basic_block: ('a, 'b) Basic.basic_block;
       in_vars: TypedIdentifierSet.t;
       out_vars: TypedIdentifierSet.t;
     }
 
     type cfg_detail = {
       entry_block: string;
-      blocks_details: (cfg_statement basic_block_detail) BasicBlockMap.t;
+      blocks_details: (cfg_statement, basic_block_end option) basic_block_detail BasicBlockMap.t;
       parameters: TypedIdentifierSet.t;
       locals_vars: TypedIdentifierSet.t;
     }
@@ -232,9 +232,11 @@ module Make(CfgS : Cfg_Sig) = struct
       liveness_info: LivenessInfo.liveness_info
      }
 
+     type liveness_ending = basic_block_end option * LivenessInfo.liveness_info
+
      type cfg_liveness_detail = {
       entry_block: string;
-      blocks_liveness_details: (cfg_liveness_statement Detail.basic_block_detail) BasicBlockMap.t;
+      blocks_liveness_details: (cfg_liveness_statement, liveness_ending) Detail.basic_block_detail BasicBlockMap.t;
       parameters: TypedIdentifierSet.t;
       locals_vars: TypedIdentifierSet.t;
      }
@@ -247,19 +249,19 @@ module Make(CfgS : Cfg_Sig) = struct
      (**
       @returns : whenever the variable leaves the block
      *)
-     let does_outlives_block (elt: TypedIdentifierSet.elt) (bbd: cfg_statement Detail.basic_block_detail) = 
+     let does_outlives_block (elt: TypedIdentifierSet.elt) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
       TypedIdentifierSet.mem elt bbd.out_vars
 
 
-    let dying_in_vars_in_block (bbd: cfg_statement Detail.basic_block_detail) = 
+    let dying_in_vars_in_block (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
       TypedIdentifierSet.diff bbd.in_vars bbd.out_vars
 
-    let does_in_vars_dies_in_block (elt: typed_variable) (bbd: cfg_statement Detail.basic_block_detail) = 
+    let does_in_vars_dies_in_block (elt: typed_variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
       bbd
       |> dying_in_vars_in_block
       |> TypedIdentifierSet.mem elt
 
-      let when_variable_dies ~start_from (elt: typed_variable) (bbd: cfg_statement Detail.basic_block_detail) = 
+      let when_variable_dies ~start_from (elt: typed_variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
         let open CfgS in
         let (>>=) = Option.bind in
         let liveness =  bbd.basic_block.cfg_statements |> List.fold_left (fun (index, acc) stmt -> 
@@ -317,7 +319,9 @@ module Make(CfgS : Cfg_Sig) = struct
       ) lmap rmap
 
 
-    let dated_basic_block_of_basic_block_detail ~delete_useless_stmt dated_info_list (bbd: cfg_statement Detail.basic_block_detail) = 
+    let dated_basic_block_of_basic_block_detail ~delete_useless_stmt dated_info_list (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
+      let open Detail in
+      let open Basic in
       let open CfgS in
       let when_to_die_hashmap = bbd |> dying_in_vars_in_block |> TypedIdentifierSet.elements |> List.map (fun elt ->
         when_variable_dies_unsafe ~start_from:0 elt bbd, elt
@@ -326,7 +330,7 @@ module Make(CfgS : Cfg_Sig) = struct
       let dated_info_list = LivenessInfo.init (fun typed_variable -> TypedIdentifierSet.mem typed_variable bbd.in_vars && LivenessInfo.is_alive typed_variable dated_info_list) (LivenessInfo.elements dated_info_list) in
       
       (* Be careful new statement are in the reversed order *)
-      bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
+      let stmts, lastest_live_info = bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
         let dated_info_list = last_dated_info_list in
         let listof_now_dying_var = fetch_dying_variable ~current:block_line_index when_to_die_hashmap () in
         let date_info_updated_dying = LivenessInfo.set_dead_of_list listof_now_dying_var dated_info_list in
@@ -370,13 +374,15 @@ module Make(CfgS : Cfg_Sig) = struct
         match list with
         | [] -> [], dated_info_list
         | _::_ as l -> List.rev l, latest_liveness_info
+      in
+      stmts, lastest_live_info
 
         
     (*
       Relie on the fac that a variable create in a branch block cannot be used in a following block
       It's mostlt true for staticlly typed language but false for dynamic not like Python   
     *)
-    let rec basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info basic_blocks_map (bbd: cfg_statement Detail.basic_block_detail) = 
+    let rec basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info basic_blocks_map (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
 
     let open Detail in
     if not @@ Hashtbl.mem visited bbd.basic_block.label 
@@ -388,7 +394,7 @@ module Make(CfgS : Cfg_Sig) = struct
             basic_block = {
               label = bbd.basic_block.label;
               followed_by = bbd.basic_block.followed_by;
-              ending = bbd.basic_block.ending;
+              ending = (bbd.basic_block.ending, last_dated_info) ;
               cfg_statements = self_to_cfg_liveness
             }
         }
@@ -410,7 +416,7 @@ module Make(CfgS : Cfg_Sig) = struct
       let liveness_info =  TypedIdentifierSet.fold (fun typed_var acc -> 
         let is_parameters = TypedIdentifierSet.mem typed_var cfg.parameters in
         (typed_var, is_parameters)::acc
-      ) cfg.locals_vars [] |> LivenessInfo.of_list in
+      ) (TypedIdentifierSet.union cfg.locals_vars cfg.parameters) [] |> LivenessInfo.of_list in
       let open Detail in
       {
         entry_block = cfg.entry_block;
@@ -426,6 +432,14 @@ module Make(CfgS : Cfg_Sig) = struct
    module Inference_Graph = struct
      module IG = Graph.Make(TypedIdentifierSig)
 
+     let infer_acc liveness_info graph = 
+      let alive_elt = Liveness.LivenessInfo.alive_elements liveness_info in
+      let combined_alives = List.flatten @@ Util.combinaison (fun lhs rhs -> if TypedIdentifierSig.compare lhs rhs = 0 then None else Some (lhs, rhs)) alive_elt alive_elt in
+      combined_alives |> List.fold_left (fun acc_graph (link, along)  -> 
+        (* let lname, aname = fst link, fst along in *)
+        (* let () = Printf.printf "lname = %s, rname = %s\n%!" lname aname in *)
+        IG.link link ~along acc_graph
+        ) graph
 
 
      let infer (cfg: Liveness.cfg_liveness_detail) = 
@@ -435,15 +449,15 @@ module Make(CfgS : Cfg_Sig) = struct
       let all_variables_seq = TypedIdentifierSet.to_seq @@ TypedIdentifierSet.union cfg.locals_vars cfg.parameters in
       let graph = IG.of_seq all_variables_seq in
       BasicBlockMap.fold (fun _ block graph_acc -> 
-        block.basic_block.cfg_statements |> List.fold_left (fun inner_graph_acc stmt ->
-        let alive_elt = Liveness.LivenessInfo.alive_elements stmt.liveness_info in
-        let combined_alives = Util.combinaison (fun lhs rhs -> if TypedIdentifierSig.compare lhs rhs = 0 then None else Some (lhs, rhs)) alive_elt alive_elt in
-        combined_alives |> List.fold_left (fun inner_inner_graph_acc combine_alive -> 
-          combine_alive |> List.fold_left (fun in3_graph_acc (link, along) ->
-            IG.link link ~along in3_graph_acc
-            ) inner_inner_graph_acc
-          ) inner_graph_acc
-        ) graph_acc
+        let new_graph = block.basic_block.cfg_statements |> List.fold_left (fun inner_graph_acc stmt ->
+            infer_acc stmt.liveness_info inner_graph_acc
+          ) graph_acc 
+        in
+        let ending, liveness = block.basic_block.ending in
+        match ending with
+        | None -> new_graph
+        | Some (BBe_if {condition = _; _} | Bbe_return _) -> 
+          infer_acc liveness new_graph
       ) cfg.blocks_liveness_details graph
    end
 

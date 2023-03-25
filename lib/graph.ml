@@ -44,7 +44,7 @@ module Make(S: OrderedType) = struct
     let () = check_contains along graph in
     let linked_to = egde_to node graph in
     let extended_node = NodeSet.add along linked_to in
-    NodeMap.add along extended_node graph
+    NodeMap.add node extended_node graph
 
   let mutual_link (node1: S.t) (node2: S.t) (graph: graph): graph =
     let graph = link node1 ~along:node2 graph in
@@ -54,4 +54,9 @@ module Make(S: OrderedType) = struct
     NodeMap.union (fun _ lset rset -> 
       Option.some @@ NodeSet.union lset rset
     ) lhs rhs
+
+  let bindings (graph: graph) = 
+    graph 
+    |> NodeMap.bindings
+    |> List.map (fun (node, set) -> node, NodeSet.elements set)
 end
