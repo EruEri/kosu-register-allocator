@@ -15,17 +15,40 @@ module type Cfg_Sig = sig
   val is_affectation: tac_typed_rvalue -> bool
 end
 
+module type ABI = sig
+  type register
+  type any
+  type rktype
+
+  type return_strategy = 
+  | Indirect_return
+  | Simple_return of register
+  | Splitted_return of register * register
+
+  val compare: register -> register -> int
+  val any: any
+  val registers: register list
+  val callee_saved_register: register list
+  val caller_saved_register: register list
+  val syscall_register: register list
+  val argument_register: register list
+  val syscall_register_code: register
+
+  val does_return_hold_in_register: any -> rktype -> bool
+  val indirect_return_register: register
+  val return_strategy: any -> rktype -> return_strategy
+
+end
+
 
 module Make(CfgS : Cfg_Sig) = struct
 
-  
-
-  module TypedIdentifierSet = Set.Make(struct
-    open CfgS
-    type t = (string * rktype)
+  module TypedIdentifierSig = struct
+    type t = (string * CfgS.rktype)
     let compare = CfgS.compare
   end
-  )
+
+  module TypedIdentifierSet = Set.Make(TypedIdentifierSig)
 
   type typed_variable = TypedIdentifierSet.elt
 
@@ -185,6 +208,10 @@ module Make(CfgS : Cfg_Sig) = struct
 
       let elements : liveness_info -> typed_variable list  = List.map fst 
 
+      let alive_elements: liveness_info -> typed_variable list = List.filter_map (fun (elt, alive) ->
+        if alive then Some elt else None  
+      )
+
       let set_dead (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
         let in_element, _ = e in
         if 
@@ -199,24 +226,6 @@ module Make(CfgS : Cfg_Sig) = struct
           set_dead var new_info
       ) info
     end
-
-
-    (* open Util *)
-    (* type liveness_info = {
-      variable: TypedIdentifierSet.elt;
-      is_alive: bool;
-    }
-
-    type dated_info = TypedIdentifierSet.elt Date.dated
-
-    type dated_infos = dated_info list
-
-     type 'a cfg_statement_info = {
-      stmt: cfg_statement;
-      info: 'a list
-     }
-     type cfg_liveness = liveness_info cfg_statement_info Detail.basic_block_detail
-     type cfg_dated = dated_info cfg_statement_info Detail.basic_block_detail *)
 
      type cfg_liveness_statement = {
       cfg_statement: cfg_statement;
@@ -288,7 +297,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
     (**
     Remove the from the hashtable the variable that die at the times of [current]
-    @returns : List of dying variable at the times [current]    
+    @return : List of dying variable at the times [current]    
     *)
     let fetch_dying_variable ~current map (): typed_variable list =
       let removed =  Hashtbl.find_all map (Some current) in
@@ -410,5 +419,35 @@ module Make(CfgS : Cfg_Sig) = struct
         blocks_liveness_details = basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info:liveness_info cfg.blocks_details entry_block
       }
 
+    
+
+   end
+
+   module Inference_Graph = struct
+     module IG = Graph.Make(TypedIdentifierSig)
+
+
+
+     let infer (cfg: Liveness.cfg_liveness_detail) = 
+      let open Basic in
+      let open Detail in
+      let open Liveness in
+      let all_variables_seq = TypedIdentifierSet.to_seq @@ TypedIdentifierSet.union cfg.locals_vars cfg.parameters in
+      let graph = IG.of_seq all_variables_seq in
+      BasicBlockMap.fold (fun _ block graph_acc -> 
+        block.basic_block.cfg_statements |> List.fold_left (fun inner_graph_acc stmt ->
+        let alive_elt = Liveness.LivenessInfo.alive_elements stmt.liveness_info in
+        let combined_alives = Util.combinaison (fun lhs rhs -> if TypedIdentifierSig.compare lhs rhs = 0 then None else Some (lhs, rhs)) alive_elt alive_elt in
+        combined_alives |> List.fold_left (fun inner_inner_graph_acc combine_alive -> 
+          combine_alive |> List.fold_left (fun in3_graph_acc (link, along) ->
+            IG.link link ~along in3_graph_acc
+            ) inner_inner_graph_acc
+          ) inner_graph_acc
+        ) graph_acc
+      ) cfg.blocks_liveness_details graph
+   end
+
+   module GridyAllocator = struct
+     
    end
 end

@@ -22,3 +22,10 @@ module Date = struct
     | Some _ -> set_end date dated
   
 end
+
+let combinaison f l1 l2 = 
+  l1 |> List.map (fun elt -> 
+    l2 |> List.filter_map (fun elt2 -> 
+      f elt elt2
+    )
+  ) 
