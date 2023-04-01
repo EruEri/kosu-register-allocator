@@ -1,17 +1,17 @@
 module StringSet = Set.Make(String)
 
 module type Cfg_Sig = sig
+
+  type variable
   type tac_typed_rvalue
   type tac_typed_expression
-  type rktype
 
-  val compare: (string * rktype) -> (string * rktype) -> int
-
-  val declaration_typed: tac_typed_rvalue -> rktype
-  val derefed_typed:  tac_typed_rvalue -> rktype
-
-  val ttrv_identifiers_used: tac_typed_rvalue -> (string * rktype) list
-  val tte_idenfier_used: tac_typed_expression -> (string * rktype) list
+  val repr: variable -> string
+  val compare: variable -> variable -> int
+  val lvalue_variable: string -> tac_typed_rvalue -> variable
+  val lvalue_deref_variable: string -> tac_typed_rvalue -> variable
+  val ttrv_identifiers_used: tac_typed_rvalue -> variable list
+  val tte_idenfier_used: tac_typed_expression -> variable list
   val is_affectation: tac_typed_rvalue -> bool
 end
 
@@ -44,7 +44,7 @@ end
 module Make(CfgS : Cfg_Sig) = struct
 
   module TypedIdentifierSig = struct
-    type t = (string * CfgS.rktype)
+    type t = CfgS.variable
     let compare = CfgS.compare
   end
 
@@ -116,7 +116,7 @@ module Make(CfgS : Cfg_Sig) = struct
             let extented_killed_vars, new_geneated =  
               let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
               let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
-              let extented_killed_vars = TypedIdentifierSet.add (identifier, declaration_typed trvalue) killed in
+              let extented_killed_vars = TypedIdentifierSet.add (lvalue_variable identifier trvalue) killed in
               let new_geneated = TypedIdentifierSet.union remove_block_create_variable_set generated in
               extented_killed_vars, new_geneated
             in
@@ -131,7 +131,7 @@ module Make(CfgS : Cfg_Sig) = struct
           let right_value_set = trvalue |> ttrv_identifiers_used |> TypedIdentifierSet.of_list in
           let remove_block_create_variable_set = TypedIdentifierSet.diff right_value_set killed in
           let new_geneated = TypedIdentifierSet.union remove_block_create_variable_set generated in
-          let extented_generated = TypedIdentifierSet.add (identifier, derefed_typed trvalue) new_geneated in
+          let extented_generated = TypedIdentifierSet.add (lvalue_deref_variable identifier trvalue) new_geneated in
           basic_block_cfg_statement_list ~killed:killed ~generated:extented_generated q
         end
       in
@@ -272,7 +272,7 @@ module Make(CfgS : Cfg_Sig) = struct
             (index + 1, Die_at (max start_from index))
           else
             (index + 1, acc)
-        ) (1, Die_at start_from) |> snd
+        ) (0, Die_at start_from) |> snd
       in
       bbd.basic_block.ending >>= (fun (Bbe_return tte | BBe_if {condition = tte; _}) -> 
         let used_vars = tte_idenfier_used tte in
@@ -294,7 +294,7 @@ module Make(CfgS : Cfg_Sig) = struct
         match when_variable_dies ~start_from elt bdd with
         | Die_at n -> Some n
         | Die_in_ending -> None
-        | Always_alive -> elt |> fst |> Printf.sprintf "The variable %s outlives the block" |> invalid_arg
+        | Always_alive -> elt |> CfgS.repr |> Printf.sprintf "The variable %s outlives the block" |> invalid_arg
 
 
     (**
@@ -338,8 +338,10 @@ module Make(CfgS : Cfg_Sig) = struct
         match stmt with
         | CFG_STacDeclaration {identifier; trvalue} 
         | CFG_STacModification {identifier; trvalue} -> 
-          let typed_variable = (identifier, declaration_typed trvalue) in
+          let typed_variable = lvalue_variable identifier trvalue in
           
+          (* let () = Printf.printf "line : %u, dying = [%s]\n%!" block_line_index (listof_now_dying_var |> List.map CfgS.repr |> String.concat ", ") in *)
+
           begin match does_outlives_block typed_variable bbd with
           | true -> begin 
             let updated_alive_info = if CfgS.is_affectation trvalue then (LivenessInfo.set_alive typed_variable date_info_updated_dying) else date_info_updated_dying in
@@ -367,7 +369,7 @@ module Make(CfgS : Cfg_Sig) = struct
            end 
         end
         | CFG_STDerefAffectation {identifier; trvalue} -> 
-          let typed_variable = (identifier, derefed_typed trvalue) in
+          let typed_variable = lvalue_deref_variable identifier trvalue in
           let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
           next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
       ) (0, ([]) , dated_info_list) |> fun (_, list, latest_liveness_info) -> 
