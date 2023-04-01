@@ -50,7 +50,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
   module TypedIdentifierSet = Set.Make(TypedIdentifierSig)
 
-  type typed_variable = TypedIdentifierSet.elt
+  type variable = TypedIdentifierSet.elt
 
 
 
@@ -185,15 +185,15 @@ module Make(CfgS : Cfg_Sig) = struct
    module Liveness = struct
 
     module LivenessInfo = struct
-      type liveness_info = ( typed_variable * bool ) list
+      type liveness_info = ( variable * bool ) list
 
       let init map variable : liveness_info = variable |> List.map (fun v -> v, map v)
 
-      let is_alive (elt: typed_variable) info: bool = info |> List.assoc elt 
+      let is_alive (elt: variable) info: bool = info |> List.assoc elt 
 
       let is_dead elt info = not @@ is_alive elt info
 
-      let set_alive (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
+      let set_alive (elt: variable) info: liveness_info = info |> List.map (fun e -> 
         let in_element, _ = e in
         if 
           CfgS.compare in_element elt = 0 then
@@ -204,15 +204,15 @@ module Make(CfgS : Cfg_Sig) = struct
 
       let of_list l: liveness_info = l
 
-      let to_list l: ( typed_variable * bool ) list = l
+      let to_list l: ( variable * bool ) list = l
 
-      let elements : liveness_info -> typed_variable list  = List.map fst 
+      let elements : liveness_info -> variable list  = List.map fst 
 
-      let alive_elements: liveness_info -> typed_variable list = List.filter_map (fun (elt, alive) ->
+      let alive_elements: liveness_info -> variable list = List.filter_map (fun (elt, alive) ->
         if alive then Some elt else None  
       )
 
-      let set_dead (elt: typed_variable) info: liveness_info = info |> List.map (fun e -> 
+      let set_dead (elt: variable) info: liveness_info = info |> List.map (fun e -> 
         let in_element, _ = e in
         if 
           CfgS.compare in_element elt = 0 then
@@ -221,7 +221,7 @@ module Make(CfgS : Cfg_Sig) = struct
           e
       )
 
-      let set_dead_of_list (elts: typed_variable list) info: liveness_info = 
+      let set_dead_of_list (elts: variable list) info: liveness_info = 
         elts |> List.fold_left (fun new_info var -> 
           set_dead var new_info
       ) info
@@ -256,12 +256,12 @@ module Make(CfgS : Cfg_Sig) = struct
     let dying_in_vars_in_block (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
       TypedIdentifierSet.diff bbd.in_vars bbd.out_vars
 
-    let does_in_vars_dies_in_block (elt: typed_variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
+    let does_in_vars_dies_in_block (elt: variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
       bbd
       |> dying_in_vars_in_block
       |> TypedIdentifierSet.mem elt
 
-      let when_variable_dies ~start_from (elt: typed_variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
+      let when_variable_dies ~start_from (elt: variable) (bbd: (cfg_statement, basic_block_end option) Detail.basic_block_detail) = 
         let open CfgS in
         let (>>=) = Option.bind in
         let liveness =  bbd.basic_block.cfg_statements |> List.fold_left (fun (index, acc) stmt -> 
@@ -301,9 +301,13 @@ module Make(CfgS : Cfg_Sig) = struct
     Remove the from the hashtable the variable that die at the times of [current]
     @return : List of dying variable at the times [current]    
     *)
-    let fetch_dying_variable ~current map (): typed_variable list =
-      let removed =  Hashtbl.find_all map (Some current) in
-      let () = map |> Hashtbl.filter_map_inplace (fun key value -> 
+    let fetch_dying_variable ~current map (): variable list =
+      let removed = map |> Hashtbl.to_seq |> Seq.filter_map (
+        fun ((time, elt), _) -> if time = Some current then Some elt else None 
+      ) 
+      |> List.of_seq in
+      (* let removed =  Hashtbl.find_all map (Some current) in *)
+      let () = map |> Hashtbl.filter_map_inplace (fun (key, _) value -> 
         if key = (Some current) then None
         else Some value
       )  in
@@ -324,10 +328,20 @@ module Make(CfgS : Cfg_Sig) = struct
       let open Basic in
       let open CfgS in
       let when_to_die_hashmap = bbd |> dying_in_vars_in_block |> TypedIdentifierSet.elements |> List.map (fun elt ->
-        when_variable_dies_unsafe ~start_from:0 elt bbd, elt
+        let when_it, elt =  when_variable_dies_unsafe ~start_from:0 elt bbd, elt in
+        (when_it, elt), elt
       ) |> List.to_seq |> Hashtbl.of_seq in
-
-      let dated_info_list = LivenessInfo.init (fun typed_variable -> TypedIdentifierSet.mem typed_variable bbd.in_vars && LivenessInfo.is_alive typed_variable dated_info_list) (LivenessInfo.elements dated_info_list) in
+      
+      
+      (* let () = when_to_die_hashmap |> Hashtbl.iter (fun dying variable -> 
+        let () = Printf.printf "lifetime : %s, v = %s\n" 
+          (dying |> Option.map string_of_int |> Option.value ~default:"null") 
+          (CfgS.repr variable)
+        in 
+        ()
+      ) in *)
+ 
+      let dated_info_list = LivenessInfo.init (fun variable -> TypedIdentifierSet.mem variable bbd.in_vars && LivenessInfo.is_alive variable dated_info_list) (LivenessInfo.elements dated_info_list) in
       
       (* Be careful new statement are in the reversed order *)
       let stmts, lastest_live_info = bbd.basic_block.cfg_statements |> List.fold_left (fun (block_line_index, cfg_liveness_statements, last_dated_info_list) stmt ->
@@ -338,40 +352,40 @@ module Make(CfgS : Cfg_Sig) = struct
         match stmt with
         | CFG_STacDeclaration {identifier; trvalue} 
         | CFG_STacModification {identifier; trvalue} -> 
-          let typed_variable = lvalue_variable identifier trvalue in
+          let variable = lvalue_variable identifier trvalue in
           
           (* let () = Printf.printf "line : %u, dying = [%s]\n%!" block_line_index (listof_now_dying_var |> List.map CfgS.repr |> String.concat ", ") in *)
 
-          begin match does_outlives_block typed_variable bbd with
+          begin match does_outlives_block variable bbd with
           | true -> begin 
-            let updated_alive_info = if CfgS.is_affectation trvalue then (LivenessInfo.set_alive typed_variable date_info_updated_dying) else date_info_updated_dying in
-            next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
+            let updated_alive_info = if CfgS.is_affectation trvalue then (LivenessInfo.set_alive variable date_info_updated_dying) else date_info_updated_dying in
+            next_line,  {cfg_statement = stmt; liveness_info = dated_info_list}::cfg_liveness_statements, updated_alive_info
           end
           | false -> begin match CfgS.is_affectation trvalue with
             | false -> next_line, {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, date_info_updated_dying
             | true -> 
-              let in_how_many_times_it_dies = when_variable_dies_unsafe ~start_from:block_line_index typed_variable bbd in
+              let in_how_many_times_it_dies = when_variable_dies_unsafe ~start_from:block_line_index variable bbd in
               let does_it_dies_now = in_how_many_times_it_dies |> Option.map (( = ) block_line_index) |> Option.value ~default:false in
               if 
                 does_it_dies_now 
               then
-                let updated_dead_liveinfo = (LivenessInfo.set_dead typed_variable date_info_updated_dying) in
+                let updated_dead_liveinfo = (LivenessInfo.set_dead variable date_info_updated_dying) in
                 next_line, 
                 ( if delete_useless_stmt then cfg_liveness_statements
                 else
-                  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements
+                  {cfg_statement = stmt; liveness_info = dated_info_list}::cfg_liveness_statements
                 )
                 ,  updated_dead_liveinfo
               else
-                let () = Hashtbl.replace when_to_die_hashmap in_how_many_times_it_dies typed_variable in
-                let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
-                next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
+                let () = Hashtbl.replace when_to_die_hashmap (in_how_many_times_it_dies, variable) variable in
+                let updated_alive_info = (LivenessInfo.set_alive variable date_info_updated_dying) in
+                next_line,  {cfg_statement = stmt; liveness_info = dated_info_list}::cfg_liveness_statements, updated_alive_info
            end 
         end
         | CFG_STDerefAffectation {identifier; trvalue} -> 
-          let typed_variable = lvalue_deref_variable identifier trvalue in
-          let updated_alive_info = (LivenessInfo.set_alive typed_variable date_info_updated_dying) in
-          next_line,  {cfg_statement = stmt; liveness_info = date_info_updated_dying}::cfg_liveness_statements, updated_alive_info
+          let variable = lvalue_deref_variable identifier trvalue in
+          let updated_alive_info = (LivenessInfo.set_alive variable date_info_updated_dying) in
+          next_line,  {cfg_statement = stmt; liveness_info = dated_info_list}::cfg_liveness_statements, updated_alive_info
       ) (0, ([]) , dated_info_list) |> fun (_, list, latest_liveness_info) -> 
         match list with
         | [] -> [], dated_info_list
