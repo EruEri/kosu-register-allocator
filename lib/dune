@@ -1,6 +1,6 @@
 (library
  (public_name register_allocator)
  (name register_allocator)
- (modules cfg register_allocator util graph)
- (private_modules util graph)
+ (modules cfg register_allocator util graph livenessInfo)
+ (private_modules util graph livenessInfo)
 )

@@ -185,49 +185,9 @@ module Make(CfgS : Cfg_Sig) = struct
 
    module Liveness = struct
 
-    module LivenessInfo = struct
-      type liveness_info = ( variable * bool ) list
+    module LivenessInfo = LivenessInfo.Make(TypedIdentifierSig)
 
-      let init map variable : liveness_info = variable |> List.map (fun v -> v, map v)
-
-      let is_alive (elt: variable) info: bool = info |> List.assoc elt 
-
-      let is_dead elt info = not @@ is_alive elt info
-
-      let set_alive (elt: variable) info: liveness_info = info |> List.map (fun e -> 
-        let in_element, _ = e in
-        if 
-          CfgS.compare in_element elt = 0 then
-            in_element, true
-        else
-          e
-      )
-
-      let of_list l: liveness_info = l
-
-      let to_list l: ( variable * bool ) list = l
-
-      let elements : liveness_info -> variable list  = List.map fst 
-
-      let alive_elements: liveness_info -> variable list = List.filter_map (fun (elt, alive) ->
-        if alive then Some elt else None  
-      )
-
-      let set_dead (elt: variable) info: liveness_info = info |> List.map (fun e -> 
-        let in_element, _ = e in
-        if 
-          CfgS.compare in_element elt = 0 then
-            in_element, false
-        else
-          e
-      )
-
-      let set_dead_of_list (elts: variable list) info: liveness_info = 
-        elts |> List.fold_left (fun new_info var -> 
-          set_dead var new_info
-      ) info
-    end
-
+    
      type cfg_liveness_statement = {
       cfg_statement: cfg_statement;
       liveness_info: LivenessInfo.liveness_info
@@ -333,15 +293,6 @@ module Make(CfgS : Cfg_Sig) = struct
         (when_it, elt), elt
       ) |> List.to_seq |> Hashtbl.of_seq in
       
-      
-      (* let () = when_to_die_hashmap |> Hashtbl.iter (fun dying variable -> 
-        let () = Printf.printf "lifetime : %s, v = %s\n" 
-          (dying |> Option.map string_of_int |> Option.value ~default:"null") 
-          (CfgS.repr variable)
-        in 
-        ()
-      ) in *)
- 
       let dated_info_list = LivenessInfo.init (fun variable -> TypedIdentifierSet.mem variable bbd.in_vars && LivenessInfo.is_alive variable dated_info_list) (LivenessInfo.elements dated_info_list) in
       
       (* Be careful new statement are in the reversed order *)
