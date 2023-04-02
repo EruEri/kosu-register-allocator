@@ -116,6 +116,8 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
         S.compare lhs.along rhs.along
   end)
 
+  module G = Make(S)
+
   type colored_graph = {
     nodes: Nodes.t;
     egdes: Edges.t
@@ -171,4 +173,26 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
       let () = check_color along root in
       let edge = create_edge root along in
       add_edge edge graph
+
+
+  
+
+    let of_graph ?(precolored = ( []: (S.t * Color.color) list ) ) (graph: G.graph) = 
+      let color_links ~precolored linked = 
+        linked |> List.map (fun node ->
+          let color = precolored |> List.find_map (fun (elt, color) -> if S.compare node elt = 0 then Some color else None ) in
+          create_colored color node 
+        ) 
+      in
+      graph |> G.bindings |> List.fold_left (fun graph_acc (node, linked) ->
+        let colored_opt = precolored |> List.find_map (fun (elt, color) -> if S.compare node elt = 0 then Some color else None ) in
+        let cnode = create_colored colored_opt node in
+        let clinked = color_links ~precolored linked in
+        let graph_acc = add_node cnode graph_acc in
+        let graph_acc = clinked  |> List.fold_left (fun inner_graph cl -> 
+          let new_graph = inner_graph |> add_node cl |> link cnode ~along:cl in
+          new_graph
+        ) graph_acc in
+        graph_acc
+      ) empty
 end

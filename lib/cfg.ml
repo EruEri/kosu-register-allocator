@@ -13,6 +13,8 @@ module type Cfg_Sig = sig
   val ttrv_identifiers_used: tac_typed_rvalue -> variable list
   val tte_idenfier_used: tac_typed_expression -> variable list
   val is_affectation: tac_typed_rvalue -> bool
+
+  val variables_as_parameter: tac_typed_rvalue -> (string * int) list option
 end
 
 module type ABI = sig
