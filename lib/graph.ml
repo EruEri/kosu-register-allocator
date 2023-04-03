@@ -95,7 +95,6 @@ module Make(S: OrderedType) = struct
   }
 
   let bindings (graph: graph) = 
-    let open EgdesSig in
     NodeSet.fold (fun node acc ->
       let egdes = egde_of node graph in 
       (node, NodeSet.elements egdes)::acc

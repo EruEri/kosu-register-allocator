@@ -458,8 +458,14 @@ module Make(CfgS : Cfg_Sig) = struct
    end
 
    module GreedyColoring(Color: Graph.ColoredType) = struct
-     module IG = Inference_Graph.IG
 
-     
+    module ColoredGraph = Graph.ColoredMake(TypedIdentifierSig)(Color)
+
+    let coloration ~(parameters: (TypedIdentifierSet.elt * Color.t) list) ~available_color (cfg: Liveness.cfg_liveness_detail) = 
+      let open Inference_Graph in
+      let base_graph = infer cfg in
+      let _constraints = constraints cfg in
+      let colored_graph = ColoredGraph.of_graph ~precolored:parameters base_graph in
+      ColoredGraph.color_graph available_color colored_graph
    end
 end
