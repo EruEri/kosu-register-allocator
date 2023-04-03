@@ -281,7 +281,8 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
           | Some c -> 
             if ColorSet.mem c available_color_set then acc_graph
             else
-              __LINE__ |> Printf.sprintf "What to when in this case line : %u" |> failwith
+              (* let node = remove_color node in replace_color_node node  *)
+              acc_graph
         end
 
       ) graph
