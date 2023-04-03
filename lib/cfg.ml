@@ -41,6 +41,8 @@ module type ABI = sig
 
 end
 
+module type ColoredType = Graph.ColoredType
+
 
 module Make(CfgS : Cfg_Sig) = struct
 
@@ -89,7 +91,7 @@ module Make(CfgS : Cfg_Sig) = struct
     type cfg = {
       entry_block: string;
       blocks: (cfg_statement, basic_block_end option) basic_block BasicBlockMap.t;
-      parameters: TypedIdentifierSet.t;
+      parameters: variable list;
       locals_vars: TypedIdentifierSet.t;
     }
     let fetch_basic_block_from_label label_name bbset = 
@@ -167,7 +169,7 @@ module Make(CfgS : Cfg_Sig) = struct
     type cfg_detail = {
       entry_block: string;
       blocks_details: (cfg_statement, basic_block_end option) basic_block_detail BasicBlockMap.t;
-      parameters: TypedIdentifierSet.t;
+      parameters: variable list;
       locals_vars: TypedIdentifierSet.t;
     }
 
@@ -205,7 +207,7 @@ module Make(CfgS : Cfg_Sig) = struct
      type cfg_liveness_detail = {
       entry_block: string;
       blocks_liveness_details: (cfg_liveness_statement, liveness_ending) Detail.basic_block_detail BasicBlockMap.t;
-      parameters: TypedIdentifierSet.t;
+      parameters: variable list;
       locals_vars: TypedIdentifierSet.t;
      }
 
@@ -386,12 +388,13 @@ module Make(CfgS : Cfg_Sig) = struct
       BasicBlockMap.empty
 
     let of_cfg_details ~delete_useless_stmt (cfg: Detail.cfg_detail) =
+      let parameters_set = TypedIdentifierSet.of_list cfg.parameters in
       let visited = Hashtbl.create 5 in 
       let entry_block = Basic.fetch_basic_block_from_label cfg.entry_block cfg.blocks_details in
       let liveness_info =  TypedIdentifierSet.fold (fun typed_var acc -> 
-        let is_parameters = TypedIdentifierSet.mem typed_var cfg.parameters in
+        let is_parameters = TypedIdentifierSet.mem typed_var parameters_set in
         (typed_var, is_parameters)::acc
-      ) (TypedIdentifierSet.union cfg.locals_vars cfg.parameters) [] |> LivenessInfo.of_list in
+      ) (TypedIdentifierSet.union cfg.locals_vars parameters_set) [] |> LivenessInfo.of_list in
       let open Detail in
       {
         entry_block = cfg.entry_block;
@@ -442,7 +445,8 @@ module Make(CfgS : Cfg_Sig) = struct
       let open Basic in
       let open Detail in
       let open Liveness in
-      let all_variables_seq = TypedIdentifierSet.to_seq @@ TypedIdentifierSet.union cfg.locals_vars cfg.parameters in
+      let parameters_set = TypedIdentifierSet.of_list cfg.parameters in
+      let all_variables_seq = TypedIdentifierSet.to_seq @@ TypedIdentifierSet.union cfg.locals_vars parameters_set in
       let graph = IG.of_seq all_variables_seq in
       BasicBlockMap.fold (fun _ block graph_acc -> 
         let new_graph = block.basic_block.cfg_statements |> List.fold_left (fun inner_graph_acc stmt ->
@@ -457,7 +461,7 @@ module Make(CfgS : Cfg_Sig) = struct
       ) cfg.blocks_liveness_details graph
    end
 
-   module GreedyColoring(Color: Graph.ColoredType) = struct
+   module GreedyColoring(Color: ColoredType) = struct
 
     module ColoredGraph = Graph.ColoredMake(TypedIdentifierSig)(Color)
 

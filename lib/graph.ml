@@ -144,12 +144,12 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
   type colored_graph = {
     nodes: NodeSet.t;
-    egdes: EdgeSet.t
+    edges: EdgeSet.t
   }
 
   let empty = {
     nodes = NodeSet.empty;
-    egdes = EdgeSet.empty;
+    edges = EdgeSet.empty;
   }
 
   let create_colored color node = 
@@ -171,7 +171,7 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
   let add_edge egde graph = 
     {
-      graph with egdes = EdgeSet.add egde graph.egdes
+      graph with edges = EdgeSet.add egde graph.edges
     }
 
     let replace_color_node node graph = {
@@ -180,7 +180,7 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
     let union_edges edges graph = 
       {
-        graph with egdes = EdgeSet.union edges graph.egdes
+        graph with edges = EdgeSet.union edges graph.edges
       }
 
     let add_uncolored_node ?(color) node graph = 
@@ -188,8 +188,10 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
     let remove_color node = { node with color = None }
 
+
+
     let edges node cgraph = 
-      cgraph.egdes |> EdgeSet.filter (fun edge ->
+      cgraph.edges |> EdgeSet.filter (fun edge ->
         S.compare edge.root node = 0  
       ) 
 
@@ -211,12 +213,20 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
       let find node graph = NodeSet.find (create_colored None node) graph.nodes
 
+      let egde_of : colored_node -> colored_graph -> NodeSet.t = fun node graph ->
+        EdgeSet.fold (fun edge acc -> 
+          if S.compare edge.root node.node = 0 then 
+            NodeSet.add (find edge.along graph) acc
+          else
+            acc
+        ) graph.edges NodeSet.empty
+
     let remove node graph = 
-      let keep, remove = EdgeSet.partition (fun edge -> S.compare node.node edge.root <> 0) graph.egdes in
+      let keep, remove = EdgeSet.partition (fun edge -> S.compare node.node edge.root <> 0) graph.edges in
       let nodes = NodeSet.remove node graph.nodes in
       {
         nodes;
-        egdes = keep
+        edges = keep
       }, remove 
 
     (**
@@ -275,4 +285,10 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
         end
 
       ) graph
+
+    let bindings (graph: colored_graph) = 
+      NodeSet.fold (fun node acc ->
+        let egdes = egde_of node graph in 
+        (node, NodeSet.elements egdes)::acc
+      ) graph.nodes []
 end
