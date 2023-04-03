@@ -175,6 +175,10 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
       graph with egdes = EdgeSet.add egde graph.egdes
     }
 
+    let replace_color_node node graph = {
+      graph with nodes = NodeSet.map (fun cnode -> if NodeSig.compare cnode node = 0 then node else cnode ) graph.nodes
+    }
+
     let union_edges edges graph = 
       {
         graph with egdes = EdgeSet.union edges graph.egdes
@@ -258,21 +262,18 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
         Int.compare rcardinal lcardinal
       ) in
 
-      ordered_nodes |> List.fold_left (fun (restruct_graph, destroyed_graph) node ->
-        let destroyed_graph, removed_edges = remove node destroyed_graph in 
-        let restruct_graph = union_edges removed_edges restruct_graph in
-        let around_color_set = surrounded_color node restruct_graph in
+      ordered_nodes |> List.fold_left (fun acc_graph node ->
+        let around_color_set = surrounded_color node acc_graph in
         let available_color_set = ColorSet.diff colorset around_color_set in
         match ColorSet.min_elt_opt available_color_set with
-        | None -> let node = remove_color node in (add_node node restruct_graph, destroyed_graph)
+        | None -> let node = remove_color node in replace_color_node node acc_graph
         | Some color -> begin match node.color with
-          | None -> let node = { node with color = Some color } in (add_node node restruct_graph, destroyed_graph)
+          | None -> let node = { node with color = Some color } in replace_color_node node acc_graph
           | Some c -> 
-            if ColorSet.mem c available_color_set then (add_node node restruct_graph, destroyed_graph)
+            if ColorSet.mem c available_color_set then acc_graph
             else
-              __LINE__ |> Printf.sprintf "What to when in this case line = %u" |> failwith
-
+              __LINE__ |> Printf.sprintf "What to when in this case line : %u" |> failwith
         end
 
-      ) (empty, graph) |> fst
+      ) graph
 end
