@@ -11,34 +11,47 @@ end
 
 module Make(S: OrderedType) = struct
   module NodeSet = Set.Make(S)
-  module NodeMap = Map.Make(S)
+  module EgdesSig = struct
+    type t = {
+      root: S.t;
+      along: S.t
+    }
+
+    let compare lhs rhs = 
+      let tmp = S.compare lhs.root rhs.root in
+      if tmp <> 0 then tmp
+      else S.compare lhs.along rhs.along
+  end
+  module EdgeSet = Set.Make(EgdesSig)
+
+
+  type graph = {
+    nodes: NodeSet.t;
+    edges: EdgeSet.t
+  }
 
 
 
-  type graph = NodeSet.t NodeMap.t
+  let empty: graph = {
+    nodes = NodeSet.empty;
+    edges = EdgeSet.empty
+  }
 
-  let empty: graph = NodeMap.empty
-
-  let fold func init (graph: graph) = NodeMap.fold (fun key set acc -> func acc key set) graph init
-
-  let exist_node func = NodeMap.exists (fun key _ -> func key)
+  let exist_node func graph = NodeSet.exists (fun key -> func key) graph.nodes
 
   (**
     add a new node to the graph. the graph is physically equal if the node was already in the graph    
   *)
-  let add_node (node: S.t) (graph: graph) = 
-     match NodeMap.find_opt node graph with
-    | Some _ -> graph
-    | None -> 
-       NodeMap.add node NodeSet.empty  graph
-
-  let map = 
-    NodeMap.map
+  let add_node (node: S.t) (graph: graph) = NodeSet.add node graph.nodes
 
   let of_seq (nodes: S.t Seq.t): graph = 
-    nodes |> Seq.map (fun node -> node, NodeSet.empty) |> NodeMap.of_seq
+    let node_set =  nodes |> Seq.map (fun node -> node) |> NodeSet.of_seq in
+    {
+      nodes = node_set;
+      edges = EdgeSet.empty
+    }
 
-  let contains node graph = NodeMap.mem node graph
+  let contains node graph = NodeSet.mem node graph.nodes
 
   (**
     @raise Not_found if [node] is not in [graph]    
@@ -49,8 +62,14 @@ module Make(S: OrderedType) = struct
   (**
       @raise Not_found if [node] is not in [graph]    
   *)
-  let egde_to : S.t -> graph -> NodeSet.t = 
-    NodeMap.find
+  let egde_of : S.t -> graph -> NodeSet.t = fun node graph ->
+    let open EgdesSig in 
+    EdgeSet.fold (fun egde acc -> 
+      if S.compare egde.root node = 0 then 
+        NodeSet.add egde.along acc
+      else
+        acc
+    ) graph.edges NodeSet.empty
 
 
   (** 
@@ -58,25 +77,29 @@ module Make(S: OrderedType) = struct
     @raise Not_found if [node] or [along] aren't in the graph
   *)
   let link (node: S.t) ~(along : S.t) (graph: graph): graph = 
+    let open EgdesSig in
     let () = check_contains node graph in
     let () = check_contains along graph in
-    let linked_to = egde_to node graph in
-    let extended_node = NodeSet.add along linked_to in
-    NodeMap.add node extended_node graph
+    let edge = {root = node; along} in
+    {
+      graph with edges = EdgeSet.add edge graph.edges
+    }
 
   let mutual_link (node1: S.t) (node2: S.t) (graph: graph): graph =
     let graph = link node1 ~along:node2 graph in
     link node2 ~along:node1 graph
 
-  let merge (lhs: graph) (rhs: graph): graph = 
-    NodeMap.union (fun _ lset rset -> 
-      Option.some @@ NodeSet.union lset rset
-    ) lhs rhs
+  let merge (lhs: graph) (rhs: graph): graph = {
+    nodes = NodeSet.union lhs.nodes rhs.nodes;
+    edges = EdgeSet.union lhs.edges rhs.edges
+  }
 
   let bindings (graph: graph) = 
-    graph 
-    |> NodeMap.bindings
-    |> List.map (fun (node, set) -> node, NodeSet.elements set)
+    let open EgdesSig in
+    NodeSet.fold (fun node acc ->
+      let egdes = egde_of node graph in 
+      (node, NodeSet.elements egdes)::acc
+    ) graph.nodes []
 end
 
 module ColoredMake(S: OrderedType) (Color: ColoredType) = struct

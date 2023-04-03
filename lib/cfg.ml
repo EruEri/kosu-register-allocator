@@ -456,4 +456,10 @@ module Make(CfgS : Cfg_Sig) = struct
           infer_acc liveness new_graph
       ) cfg.blocks_liveness_details graph
    end
+
+   module GreedyColoring(Color: Graph.ColoredType) = struct
+     module IG = Inference_Graph.IG
+
+     
+   end
 end

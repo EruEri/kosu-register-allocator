@@ -20,11 +20,18 @@ module Make(O: OrderedType) = struct
   module ParameterSetSet = Set.Make(ParameterSet)
 
   type constraints = {
-    parameters: ParameterSetSet.t ;
+    self_parameters: ParameterSet.t;
+    inner_call_parameters: ParameterSetSet.t ;
     return: ReturnSet.t
   }
 
-  let empty = { parameters = ParameterSetSet.empty; return = ReturnSet.empty }
+  let empty = { self_parameters = ParameterSet.empty; inner_call_parameters = ParameterSetSet.empty; return = ReturnSet.empty }
+
+  let add_self_parameters_of_list self_params constraints = 
+    let self_parameters_set = ParameterSet.of_list self_params in
+    {
+      constraints with self_parameters = ParameterSet.union constraints.self_parameters self_parameters_set
+    }
 
   let add_return_constraint return constr = {
       constr with return = ReturnSet.add return constr.return
@@ -41,15 +48,16 @@ module Make(O: OrderedType) = struct
   else
     let parameters_set = parameters |> ParameterSet.of_list in
     {
-      constr with parameters = ParameterSetSet.add parameters_set constr.parameters
+      constr with inner_call_parameters = ParameterSetSet.add parameters_set constr.inner_call_parameters
     }
 
   let return_constraints constraints = constraints.return |> ReturnSet.elements
 
-  let parameters_constraints constraints = constraints.parameters |> ParameterSetSet.elements |> List.map ParameterSet.elements
+  let parameters_constraints constraints = constraints.inner_call_parameters |> ParameterSetSet.elements |> List.map ParameterSet.elements
 
   let union lhs rhs = {
-    parameters = ParameterSetSet.union lhs.parameters rhs.parameters;
+    self_parameters = ParameterSet.union lhs.self_parameters rhs.self_parameters;
+    inner_call_parameters = ParameterSetSet.union lhs.inner_call_parameters rhs.inner_call_parameters;
     return = ReturnSet.union lhs.return rhs.return
   }
 end
