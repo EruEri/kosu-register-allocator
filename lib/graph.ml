@@ -5,8 +5,8 @@ end
 
 module type ColoredType = sig
   type color
-
-  val compare: color -> color -> int
+  type t = color
+  val compare: t -> t -> int
 end
 
 module Make(S: OrderedType) = struct
@@ -60,6 +60,7 @@ module Make(S: OrderedType) = struct
     if not @@ contains node graph then raise Not_found
 
   (**
+      Return all nodes where [node] is the root of the edge
       @raise Not_found if [node] is not in [graph]    
   *)
   let egde_of : S.t -> graph -> NodeSet.t = fun node graph ->
@@ -70,7 +71,6 @@ module Make(S: OrderedType) = struct
       else
         acc
     ) graph.edges NodeSet.empty
-
 
   (** 
     Add an egde beetween [node] and [along] in [graph]. 
@@ -123,13 +123,15 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
   exception Unexisting_node of S.t
   exception Link_same_color of colored_node * colored_node
 
-  module Nodes = Set.Make(struct
+  module NodeSig = struct
     type t = colored_node
 
     let compare lhs rhs = S.compare lhs.node rhs.node
-  end)
+  end
 
-  module Edges = Set.Make(struct
+  module NodeSet = Set.Make(NodeSig)
+  module ColorSet = Set.Make(Color)
+  module EdgeSet = Set.Make(struct
     type t = egde
 
     let compare lhs rhs = 
@@ -142,13 +144,13 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
   module G = Make(S)
 
   type colored_graph = {
-    nodes: Nodes.t;
-    egdes: Edges.t
+    nodes: NodeSet.t;
+    egdes: EdgeSet.t
   }
 
   let empty = {
-    nodes = Nodes.empty;
-    egdes = Edges.empty;
+    nodes = NodeSet.empty;
+    egdes = EdgeSet.empty;
   }
 
   let create_colored color node = 
@@ -165,24 +167,31 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
 
   let add_node node graph = 
     {
-      graph with nodes = Nodes.add node graph.nodes
+      graph with nodes = NodeSet.add node graph.nodes
     }
 
   let add_edge egde graph = 
     {
-      graph with egdes = Edges.add egde graph.egdes
+      graph with egdes = EdgeSet.add egde graph.egdes
     }
+
+    let union_edges edges graph = 
+      {
+        graph with egdes = EdgeSet.union edges graph.egdes
+      }
 
     let add_uncolored_node ?(color) node graph = 
       add_node (create_colored color node) graph
 
+    let remove_color node = { node with color = None }
+
     let edges node cgraph = 
-      cgraph.egdes |> Edges.filter (fun edge ->
+      cgraph.egdes |> EdgeSet.filter (fun edge ->
         S.compare edge.root node = 0  
       ) 
 
     let check_contains node graph = 
-      if not @@ Nodes.mem (create_colored None node) @@ graph.nodes then 
+      if not @@ NodeSet.mem (create_colored None node) @@ graph.nodes then 
         raise @@ Unexisting_node node
 
     let check_color root along = 
@@ -197,8 +206,29 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
       let edge = create_edge root along in
       add_edge edge graph
 
+      let find node graph = NodeSet.find (create_colored None node) graph.nodes
 
-  
+    let remove node graph = 
+      let keep, remove = EdgeSet.partition (fun edge -> S.compare node.node edge.root <> 0) graph.egdes in
+      let nodes = NodeSet.remove node graph.nodes in
+      {
+        nodes;
+        egdes = keep
+      }, remove 
+
+    (**
+      @raise Not_found if [node] is not in the graph    
+    *)
+    let node_degre node graph = EdgeSet.cardinal @@ edges node.node graph
+
+    let surrounded_color node graph = 
+      let edges = graph |> edges node.node in
+      EdgeSet.fold (fun egde acc -> 
+        let colored_node = find egde.along graph in
+        match colored_node.color with
+        | None -> acc
+        | Some color -> ColorSet.add color acc
+      ) edges ColorSet.empty 
 
     let of_graph ?(precolored = ( []: (S.t * Color.color) list ) ) (graph: G.graph) = 
       let color_links ~precolored linked = 
@@ -218,4 +248,31 @@ module ColoredMake(S: OrderedType) (Color: ColoredType) = struct
         ) graph_acc in
         graph_acc
       ) empty
+
+
+    let color_graph colorlist graph = 
+      let colorset = ColorSet.of_list colorlist in
+      let ordered_nodes = graph.nodes |> NodeSet.elements |> List.sort (fun lhs rhs -> 
+        let lcardinal = node_degre lhs graph in
+        let rcardinal = node_degre rhs graph in
+        Int.compare rcardinal lcardinal
+      ) in
+
+      ordered_nodes |> List.fold_left (fun (restruct_graph, destroyed_graph) node ->
+        let destroyed_graph, removed_edges = remove node destroyed_graph in 
+        let restruct_graph = union_edges removed_edges restruct_graph in
+        let around_color_set = surrounded_color node restruct_graph in
+        let available_color_set = ColorSet.diff colorset around_color_set in
+        match ColorSet.min_elt_opt available_color_set with
+        | None -> let node = remove_color node in (add_node node restruct_graph, destroyed_graph)
+        | Some color -> begin match node.color with
+          | None -> let node = { node with color = Some color } in (add_node node restruct_graph, destroyed_graph)
+          | Some c -> 
+            if ColorSet.mem c available_color_set then (add_node node restruct_graph, destroyed_graph)
+            else
+              __LINE__ |> Printf.sprintf "What to when in this case line = %u" |> failwith
+
+        end
+
+      ) (empty, graph) |> fst
 end
