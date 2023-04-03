@@ -50,10 +50,10 @@ module Make(CfgS : Cfg_Sig) = struct
   end
 
   module TypedIdentifierSet = Set.Make(TypedIdentifierSig)
+  module BasicBlockMap = Map.Make(String)
+  module Constraint = Constraint.Make(TypedIdentifierSig)
 
   type variable = TypedIdentifierSet.elt
-
-
 
   type cfg_statement =
   | CFG_STacDeclaration of { identifier : string; trvalue : CfgS.tac_typed_rvalue }
@@ -70,10 +70,11 @@ module Make(CfgS : Cfg_Sig) = struct
   | BBe_if of bbe_if
   | Bbe_return of CfgS.tac_typed_expression
 
-
-
-
-  module BasicBlockMap = Map.Make(String)
+  type constraints = {
+    parameters_constr: (variable * int) list list;
+    return_constraint: variable list
+  }
+ 
 
   module Basic = struct
 
@@ -93,6 +94,12 @@ module Make(CfgS : Cfg_Sig) = struct
     }
     let fetch_basic_block_from_label label_name bbset = 
       bbset |> BasicBlockMap.find label_name
+
+
+    let trvalue_of_stmt = function
+    | CFG_STDerefAffectation {trvalue; _}
+    | CFG_STacDeclaration {trvalue; _}
+    | CFG_STacModification {trvalue; _} -> trvalue
 
     let stmt_identifiers_used = function
     | CFG_STDerefAffectation {trvalue; _}
@@ -187,7 +194,7 @@ module Make(CfgS : Cfg_Sig) = struct
 
     module LivenessInfo = LivenessInfo.Make(TypedIdentifierSig)
 
-    
+
      type cfg_liveness_statement = {
       cfg_statement: cfg_statement;
       liveness_info: LivenessInfo.liveness_info
@@ -393,8 +400,6 @@ module Make(CfgS : Cfg_Sig) = struct
         blocks_liveness_details = basic_block_liveness_of_convert ~delete_useless_stmt ~visited ~dated_info:liveness_info cfg.blocks_details entry_block
       }
 
-    
-
    end
 
    module Inference_Graph = struct
@@ -404,10 +409,33 @@ module Make(CfgS : Cfg_Sig) = struct
       let alive_elt = Liveness.LivenessInfo.alive_elements liveness_info in
       let combined_alives = List.flatten @@ Util.combinaison (fun lhs rhs -> if TypedIdentifierSig.compare lhs rhs = 0 then None else Some (lhs, rhs)) alive_elt alive_elt in
       combined_alives |> List.fold_left (fun acc_graph (link, along)  -> 
-        (* let lname, aname = fst link, fst along in *)
-        (* let () = Printf.printf "lname = %s, rname = %s\n%!" lname aname in *)
         IG.link link ~along acc_graph
         ) graph
+
+    let constraints (cfg: Liveness.cfg_liveness_detail) = 
+      let open Basic in
+      let open Detail in
+      let open Liveness in
+      let (>==) = Option.bind in
+      let constraints = Constraint.empty in
+      BasicBlockMap.fold (fun _ block acc_constr -> 
+        let acc_constr = block.basic_block.cfg_statements |> List.fold_left (fun inner_acc_str stmt -> 
+          match stmt.cfg_statement |> Basic.trvalue_of_stmt |> CfgS.variables_as_parameter with
+          | None -> inner_acc_str
+          | Some parameters -> Constraint.add_function_constraint parameters inner_acc_str 
+        ) acc_constr in
+        let return_constraint = block.basic_block.ending 
+          |> fst 
+          >== (function 
+            | BBe_if _ -> None
+            | Bbe_return tte -> 
+              let rc = tte |> CfgS.tte_idenfier_used in
+              Constraint.empty |> Constraint.add_returns_constraints rc |> Option.some
+          )
+          |> Option.value ~default:Constraint.empty in
+
+        Constraint.union return_constraint acc_constr
+      ) cfg.blocks_liveness_details constraints
 
 
      let infer (cfg: Liveness.cfg_liveness_detail) = 
@@ -427,9 +455,5 @@ module Make(CfgS : Cfg_Sig) = struct
         | Some (BBe_if {condition = _; _} | Bbe_return _) -> 
           infer_acc liveness new_graph
       ) cfg.blocks_liveness_details graph
-   end
-
-   module GridyAllocator = struct
-     
    end
 end
