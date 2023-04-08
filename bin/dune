@@ -2,5 +2,5 @@
  (name san)
  (public_name san)
  (libraries kosu_register_allocator cmdLiner)
- ( enabled_if (= %{profile} san ))
-)
+ (enabled_if
+  (= %{profile} san)))

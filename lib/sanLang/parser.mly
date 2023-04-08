@@ -58,115 +58,115 @@ san_rvalue:
         }
     }
     | atom MINUS atom { 
-         RVBinary { 
+        RVBinary { 
             binop = TacSelf TacMinus;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom MULT atom { 
-         RVBinary { 
+        RVBinary { 
             binop = TacSelf TacMult;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom DIV atom {
          RVBinary { 
             binop = TacSelf TacDiv;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom PIPE atom {
          RVBinary { 
             binop = TacSelf TacBitwiseOr;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom AMPERSAND atom {
          RVBinary { 
             binop = TacSelf TacBitwiseAnd;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom XOR atom {
          RVBinary { 
             binop = TacSelf TacBitwiseXor;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom SHIFTLEFT atom {
          RVBinary { 
             binop = TacSelf TacShiftLeft;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom SHIFTRIGHT atom {
          RVBinary { 
             binop = TacSelf TacShiftRight;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom OR atom {
          RVBinary { 
             binop = TacBool TacOr;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom AND atom {
          RVBinary { 
             binop = TacBool TacAnd;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom SUP atom {
          RVBinary { 
             binop = TacBool TacSup;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom SUPEQ atom {
          RVBinary { 
             binop = TacBool TacSupEq;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom INF atom {
          RVBinary { 
             binop = TacBool TacInf;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom INFEQ atom {
          RVBinary { 
             binop = TacBool TacInfEq;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom DOUBLEQUAL atom {
          RVBinary { 
             binop = TacBool TacEqual;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | atom DIF atom {
          RVBinary { 
             binop = TacBool TacDiff;
-        blhs = $1;
-        brhs = $3
+            blhs = $1;
+            brhs = $3
         }
     }
     | Identifier delimited(LPARENT, separated_list(COMMA, atom) ,RPARENT) {

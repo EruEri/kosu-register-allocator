@@ -26,5 +26,4 @@
  (public_name kosu_register_allocator)
  (name kosu_register_allocator)
  (modules cfg register_allocator util graph livenessInfo constraint)
- (private_modules util livenessInfo constraint)
-)
+ (private_modules util livenessInfo constraint))
