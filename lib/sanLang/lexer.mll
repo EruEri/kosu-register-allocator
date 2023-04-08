@@ -2,10 +2,28 @@
     open Parser
     open Lexing
 
+    type san_position = {
+        start_position : Lexing.position;
+        end_position : Lexing.position;
+    }
+
+    type lexer_error = 
+    | Unexpected_escaped_char of san_position * string
+    | Unclosed_string of san_position
+
+    exception Raw_Lexer_Error of lexer_error
+
+    let raw_lexer_error e = Raw_Lexer_Error e
+
+
+
+    let current_position lexbuf = 
+        { start_position = lexbuf.lex_start_p; end_position = lexbuf.lex_curr_p }
+
     let keywords = Hashtbl.create 6
     let () = 
     [("if", IF); ("goto", GOTO); ("def", DEF); ("external", EXTERNAL);  ("end", END);
-        ("true", TRUE); ("false", FALSE); ("discard", DISCARD); ("lateinit", LATEINIT)
+        ("true", TRUE); ("false", FALSE); ("discard", DISCARD); ("lateinit", LATEINIT);
     ] |> List.iter (fun (s, k) -> Hashtbl.replace keywords s k)
 
 
@@ -27,7 +45,9 @@ let hex_integer = '0' ('x' | 'X') (digit | ['a'-'f'] | ['A'-'F']) (digit | ['a'-
 let octal_intger = '0' ('o' | 'O') (['0'-'7']) (['0'-'7'] | '_')*
 let binary_integer = '0' ('b' | 'B') ('0' | '1') ('0' | '1' | '_')*
 let number = ('-')? decimal_integer | hex_integer | octal_intger | binary_integer
-let tmp_variable = "$tmp" digit
+
+let escaped_char =  ['n' 'r' 't' '\\' '\'' '\"']
+let hexa_char = '\\' 'x' (digit | ['a'-'f'] | ['A'-'F']) (digit | ['a'-'f'] | ['A'-'F'])
 
 
 let newline = ('\010' | '\013' | "\013\010")
@@ -46,11 +66,15 @@ rule token = parse
 | ' ' | '\r' {
     token lexbuf
 }
+| "(" { LPARENT }
+| ")" { RPARENT }
+| "," { COMMA }
 | "&"  { AMPERSAND }
 | "^" { XOR }
 | "&&" { AND }
 | "|" { PIPE }
 | "||" { OR }
+| "=" { EQUAL }
 | "==" { DOUBLEQUAL }
 | "!=" { DIF }
 | "!" { NOT }
@@ -65,12 +89,50 @@ rule token = parse
 | ">" { SUP }
 | "<<" { SHIFTLEFT }
 | ">>" { SHIFTRIGHT }
+| "\"" { lexbuf |> read_string (Buffer.create 16) }
 | (number as n) {
     Integer_lit(Nativeint.of_string n)
 }
+| "ssize" { SSIZE }
+| "bool"  { BOOL }
+| "stringl" { STRINGL } 
+| "unit" { UNIT }
 | identifiant as s {
     match Hashtbl.find_opt keywords s with
     | Some keyword -> keyword
     | None -> Identifier s
 }
 | eof { EOF }
+and read_string buffer = parse
+| '"' { String_lit (Buffer.contents buffer) }
+(* | '\\' 'n' { 
+    let () = Buffer.add_char buffer '\\' in
+    Buffer.add_char buffer 'n'; 
+    read_string buffer lexbuf 
+} *)
+| (hexa_char as s) {
+    let s_len = String.length s in
+    let s_number = String.sub s 1 (s_len - 1) in
+    let code =  int_of_string ("0" ^  s_number) in
+    let char = Char.chr code in
+    let escaped = char |> Printf.sprintf "%c" |> String.escaped in
+    let () = Buffer.add_string buffer escaped in 
+    read_string buffer lexbuf 
+}
+| '\\' ( escaped_char as c ){ 
+    let () = if c = '\\' then () else Buffer.add_char buffer '\\' in
+    let () = Buffer.add_char buffer c in
+    read_string buffer lexbuf 
+}
+| '\\' { ( Unexpected_escaped_char ((current_position lexbuf) , (lexbuf |> lexeme) ))  |> raw_lexer_error |> raise }
+
+| _ as c { 
+    if c = '\n' then 
+        next_line_and (read_string buffer) lexbuf
+    else
+        let () = Buffer.add_char buffer c in
+        read_string buffer lexbuf 
+}
+| eof {
+    (Unclosed_string (current_position lexbuf)  |> raw_lexer_error |> raise )  
+}

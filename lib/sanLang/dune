@@ -11,10 +11,11 @@
  (targets parser.ml parser.mli)
  (deps    parser.mly)
  (action  (chdir %{workspace_root}
-           (run %{bin:menhir} --infer %{deps}))))
+           (run %{bin:menhir} --table %{deps}))))
 
 (library
  (name sanLang)
  (enabled_if (= %{profile} san ))
+ (modules lexer parser sanAst)
  (libraries menhirLib kosu_register_allocator)
  )

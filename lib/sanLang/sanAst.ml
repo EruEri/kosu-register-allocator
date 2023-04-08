@@ -1,7 +1,10 @@
 type san_type = 
-| Int
-| String
+| Ssize
+| Stringl
 | Boolean
+| Unit
+
+type signature = san_type list * san_type
 
 type atom = 
 | String of string
@@ -49,3 +52,13 @@ type san_rvalue =
 | RVExpr of atom
 | RVDiscard 
 | RVLater
+
+
+type san_node =
+| External of {
+  fn_name: string;
+  signature: signature;
+  cname: string option
+}
+
+type san_module = san_node list
