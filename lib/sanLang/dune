@@ -1,0 +1,4 @@
+(library
+ (name sanLang)
+ ( enabled_if (= %{profile} san ))
+ (libraries menhirLib kosu_register_allocator))

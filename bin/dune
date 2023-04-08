@@ -1,0 +1,6 @@
+(executable
+ (name san)
+ (public_name san)
+ (libraries kosu_register_allocator)
+ ( enabled_if (= %{profile} san ))
+)
