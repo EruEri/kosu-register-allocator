@@ -24,6 +24,7 @@
 %start san_module
 
 %type <SanAst.san_module list> san_module
+%type <SanAst.atom> atom
 
 %%
 san_module:
@@ -33,6 +34,20 @@ san_node:
     | EXTERNAL Identifier delimited(LPARENT, separated_list(COMMA, san_type), RPARENT) san_type option(preceded(EQUAL, String_lit)) {
         External { fn_name = $2; signature = ($3, $4); cname = $5 }
     }
+
+atom:
+    | Identifier { Variable $1 }
+    | Integer_lit { Int $1 }
+    | String_lit { String $1 }
+    | TRUE { Boolean true }
+    | FALSE { Boolean false }
+
+san_rvalue:
+    | atom { RVExpr $1 }
+    | MINUS atom { RVUnary { unop = TacUminus; atom = $2 } }
+    | NOT atom { RVUnary { unop = TacNot; atom = $2} }
+    | DISCARD { RVDiscard }
+    | LATEINIT { RVLater }
 
 parameter_san_type:
     | SSIZE { Ssize }

@@ -8,7 +8,7 @@ type signature = san_type list * san_type
 
 type atom = 
 | String of string
-| Int of Int64.t
+| Int of Nativeint.t
 | Variable of string
 | Boolean of bool
 
@@ -44,12 +44,19 @@ type tac_unop = TacNot | TacUminus
 
 type binary = {
   binop : tac_binop;
-  blhs : typed_atom;
-  brhs : typed_atom;
+  blhs : atom;
+  brhs : atom;
+}
+
+type unary = {
+  unop: tac_unop;
+  atom: atom
 }
 
 type san_rvalue = 
 | RVExpr of atom
+| RVUnary of unary
+| RVBinary of binary
 | RVDiscard 
 | RVLater
 
