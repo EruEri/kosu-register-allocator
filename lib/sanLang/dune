@@ -1,4 +1,20 @@
+(rule
+ (enabled_if (= %{profile} san ))
+ (target lexer.ml)
+ (deps   lexer.mll)
+ (action (chdir %{workspace_root}
+          (run %{bin:ocamllex} -q -o %{target} %{deps}))))
+
+
+(rule
+ (enabled_if (= %{profile} san ))
+ (targets parser.ml parser.mli)
+ (deps    parser.mly)
+ (action  (chdir %{workspace_root}
+           (run %{bin:menhir} --infer %{deps}))))
+
 (library
  (name sanLang)
- ( enabled_if (= %{profile} san ))
- (libraries menhirLib kosu_register_allocator))
+ (enabled_if (= %{profile} san ))
+ (libraries menhirLib kosu_register_allocator)
+ )
