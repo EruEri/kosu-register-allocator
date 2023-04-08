@@ -23,7 +23,7 @@
     let keywords = Hashtbl.create 6
     let () = 
     [("if", IF); ("goto", GOTO); ("def", DEF); ("external", EXTERNAL);  ("end", END);
-        ("true", TRUE); ("false", FALSE); ("discard", DISCARD); ("lateinit", LATEINIT);
+        ("true", TRUE); ("false", FALSE); ("discard", DISCARD); ("lateinit", LATEINIT); ("return", RETURN)
     ] |> List.iter (fun (s, k) -> Hashtbl.replace keywords s k)
 
 
@@ -52,20 +52,15 @@ let hexa_char = '\\' 'x' (digit | ['a'-'f'] | ['A'-'F']) (digit | ['a'-'f'] | ['
 
 let newline = ('\010' | '\013' | "\013\010")
 let blank   = [' ' '\009' '\012']
-let whitespace = [' ' '\t' '\r' '\n']+
 
 
 rule token = parse
-| '\n' {
-    let _ = Lexing.new_line lexbuf in
-    ENDLINE
+| newline {  
+    (* let _ = if ( String.contains s '\n') then (line := !line + 1) else () in  *)
+    next_line_and token lexbuf 
 }
-| '\t' {
-    TAB
-}
-| ' ' | '\r' {
-    token lexbuf
-}
+| blank+ { token lexbuf }
+| ";" { SEMICOLON }
 | ":" { COLON }
 | "(" { LPARENT }
 | ")" { RPARENT }
@@ -83,7 +78,7 @@ rule token = parse
 | "-" { MINUS }
 | "*" { MULT } 
 | "/" { DIV }
-| "%" { MOD }
+(* | "%" { MOD } *)
 | "<" { INF }
 | "<=" { INFEQ }
 | ">=" { SUPEQ }
@@ -98,6 +93,11 @@ rule token = parse
 | "bool"  { BOOL }
 | "stringl" { STRINGL } 
 | "unit" { UNIT }
+| label as s {
+    match Hashtbl.find_opt keywords s with
+    | Some keyword -> keyword
+    | None -> Label s
+}
 | identifiant as s {
     match Hashtbl.find_opt keywords s with
     | Some keyword -> keyword

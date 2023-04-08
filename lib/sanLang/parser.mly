@@ -5,10 +5,11 @@
 %token <Nativeint.t> Integer_lit
 %token <string> Identifier
 %token <string> String_lit
+%token <string> Label
 %token LPARENT RPARENT
-%token SSIZE BOOL STRINGL UNIT COMMA COLON
+%token SSIZE BOOL STRINGL UNIT COMMA COLON SEMICOLON
 %token IF GOTO DEF EXTERNAL TRUE FALSE DISCARD LATEINIT END
-%token OR TAB ENDLINE
+%token OR ENDLINE RETURN
 %token PIPE
 %token AND
 %token XOR 
@@ -17,7 +18,7 @@
 %token SUP SUPEQ INF INFEQ
 %token SHIFTLEFT SHIFTRIGHT
 %token PLUS MINUS
-%token MULT DIV MOD
+%token MULT DIV
 %token EOF
 %token NOT
 
@@ -34,6 +35,7 @@ san_node:
     | EXTERNAL Identifier delimited(LPARENT, separated_list(COMMA, san_type), RPARENT) san_type option(preceded(EQUAL, String_lit)) {
         External { fn_name = $2; signature = ($3, $4); cname = $5 }
     }
+    | san_function { $1 }
 
 atom:
     | Identifier { Variable $1 }
@@ -49,98 +51,161 @@ san_rvalue:
     | MINUS atom { RVUnary { unop = TacUminus; atom = $2 } }
     | NOT atom { RVUnary { unop = TacNot; atom = $2} }
     | atom PLUS atom { 
-        binop = TacSelf TacAdd;
-        blhs = $1;
-        brhs = $3
+        RVBinary { 
+            binop = TacSelf TacAdd;
+            blhs = $1;
+            brhs = $3 
+        }
     }
     | atom MINUS atom { 
-        binop = TacSelf TacMinus;
+         RVBinary { 
+            binop = TacSelf TacMinus;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom MULT atom { 
-        binop = TacSelf TacMult;
+         RVBinary { 
+            binop = TacSelf TacMult;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom DIV atom {
-        binop = TacSelf TacDiv;
+         RVBinary { 
+            binop = TacSelf TacDiv;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom PIPE atom {
-        binop = TacSelf TacBitwiseOr;
+         RVBinary { 
+            binop = TacSelf TacBitwiseOr;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom AMPERSAND atom {
-        binop = TacSelf TacBitwiseAnd;
+         RVBinary { 
+            binop = TacSelf TacBitwiseAnd;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom XOR atom {
-        binop = TacSelf TacBitwiseXOr;
+         RVBinary { 
+            binop = TacSelf TacBitwiseXor;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom SHIFTLEFT atom {
-        binop = TacSelf TacShiftLeft;
+         RVBinary { 
+            binop = TacSelf TacShiftLeft;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom SHIFTRIGHT atom {
-        binop = TacSelf TacShiftRight;
+         RVBinary { 
+            binop = TacSelf TacShiftRight;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom OR atom {
-        binop = TacBool TacOr;
+         RVBinary { 
+            binop = TacBool TacOr;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom AND atom {
-        binop = TacBool TacAnd;
+         RVBinary { 
+            binop = TacBool TacAnd;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom SUP atom {
-        binop = TacBool TacSup;
+         RVBinary { 
+            binop = TacBool TacSup;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom SUPEQ atom {
-        binop = TacBool TacSupEq;
+         RVBinary { 
+            binop = TacBool TacSupEq;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom INF atom {
-        binop = TacBool TacInf;
+         RVBinary { 
+            binop = TacBool TacInf;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom INFEQ atom {
-        binop = TacBool TacInfEq;
+         RVBinary { 
+            binop = TacBool TacInfEq;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom DOUBLEQUAL atom {
-        binop = TacBool TacEqual;
+         RVBinary { 
+            binop = TacBool TacEqual;
         blhs = $1;
         brhs = $3
+        }
     }
     | atom DIF atom {
-        binop = TacBool TacDiff;
+         RVBinary { 
+            binop = TacBool TacDiff;
         blhs = $1;
         brhs = $3
+        }
     }
     | Identifier delimited(LPARENT, separated_list(COMMA, atom) ,RPARENT) {
         RVFunctionCall { fn_name = $1; parameters = $2 }
     }
     
 san_statement:
-    | Identifier EQUAL san_rvalue {
+    | Identifier EQUAL san_rvalue SEMICOLON {
         SSDeclaration ($1, $3)
     }
+
+san_ending:
+    | RETURN atom { SE_return $2 }
+    | IF atom GOTO Label GOTO Label { SE_If {expr = $2; if_label = $4; else_label = $6 } }
+
+san_basic_block:
+    | Label COLON ENDLINE nonempty_list(san_statement) option(san_ending) {
+        {
+            label = $1;
+            statements = $4;
+            ending = $5
+        }
+    }
+starting_basic_block:
+    | nonempty_list(san_statement) option(san_ending) { ($1, $2) }
+
+san_function:
+    | DEF label=Label delimited(LPARENT, separated_list(COMMA, param=Identifier COLON san_type=parameter_san_type {param, san_type} ), RPARENT) san_type COLON 
+        sbb=starting_basic_block blocks=list(san_basic_block) END {
+            let stmts, return = sbb in
+            let convert_starting_block = { label; statements = stmts; ending = return } in
+            let san_function = {
+                fn_name = label;
+                parameters = $3;
+                return_type = $4;
+                san_basic_blocks = convert_starting_block::blocks
+            } in
+            Declaration san_function
+        }
 
 parameter_san_type:
     | SSIZE { Ssize }
