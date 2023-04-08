@@ -25,7 +25,7 @@
 ;**********************************************************************************************;
 
 
-(name register_allocator)
+(name kosu_register_allocator)
 
 (generate_opam_files true)
 
@@ -39,7 +39,7 @@
 (license GPL-3.0 LGPL-3.0-or-later)
 
 (package
- (name register_allocator)
+ (name kosu_register_allocator)
  (synopsis "A register allocator project")
  (description "A register allocator project")
  (depends ocaml dune)
