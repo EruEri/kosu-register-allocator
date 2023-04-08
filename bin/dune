@@ -1,6 +1,6 @@
 (executable
  (name san)
  (public_name san)
- (libraries kosu_register_allocator)
+ (libraries kosu_register_allocator cmdLiner)
  ( enabled_if (= %{profile} san ))
 )
