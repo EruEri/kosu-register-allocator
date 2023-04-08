@@ -6,7 +6,7 @@
 %token <string> Identifier
 %token <string> String_lit
 %token LPARENT RPARENT
-%token SSIZE BOOL STRINGL UNIT COMMA
+%token SSIZE BOOL STRINGL UNIT COMMA COLON
 %token IF GOTO DEF EXTERNAL TRUE FALSE DISCARD LATEINIT END
 %token OR TAB ENDLINE
 %token PIPE
@@ -43,11 +43,104 @@ atom:
     | FALSE { Boolean false }
 
 san_rvalue:
+    | DISCARD preceded(COLON, san_type) { RVDiscard $2 }
+    | LATEINIT preceded(COLON, san_type) { RVLater $2 }
     | atom { RVExpr $1 }
     | MINUS atom { RVUnary { unop = TacUminus; atom = $2 } }
     | NOT atom { RVUnary { unop = TacNot; atom = $2} }
-    | DISCARD { RVDiscard }
-    | LATEINIT { RVLater }
+    | atom PLUS atom { 
+        binop = TacSelf TacAdd;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom MINUS atom { 
+        binop = TacSelf TacMinus;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom MULT atom { 
+        binop = TacSelf TacMult;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom DIV atom {
+        binop = TacSelf TacDiv;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom PIPE atom {
+        binop = TacSelf TacBitwiseOr;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom AMPERSAND atom {
+        binop = TacSelf TacBitwiseAnd;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom XOR atom {
+        binop = TacSelf TacBitwiseXOr;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom SHIFTLEFT atom {
+        binop = TacSelf TacShiftLeft;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom SHIFTRIGHT atom {
+        binop = TacSelf TacShiftRight;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom OR atom {
+        binop = TacBool TacOr;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom AND atom {
+        binop = TacBool TacAnd;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom SUP atom {
+        binop = TacBool TacSup;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom SUPEQ atom {
+        binop = TacBool TacSupEq;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom INF atom {
+        binop = TacBool TacInf;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom INFEQ atom {
+        binop = TacBool TacInfEq;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom DOUBLEQUAL atom {
+        binop = TacBool TacEqual;
+        blhs = $1;
+        brhs = $3
+    }
+    | atom DIF atom {
+        binop = TacBool TacDiff;
+        blhs = $1;
+        brhs = $3
+    }
+    | Identifier delimited(LPARENT, separated_list(COMMA, atom) ,RPARENT) {
+        RVFunctionCall { fn_name = $1; parameters = $2 }
+    }
+    
+san_statement:
+    | Identifier EQUAL san_rvalue {
+        SSDeclaration ($1, $3)
+    }
 
 parameter_san_type:
     | SSIZE { Ssize }

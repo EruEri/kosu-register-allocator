@@ -66,6 +66,7 @@ rule token = parse
 | ' ' | '\r' {
     token lexbuf
 }
+| ":" { COLON }
 | "(" { LPARENT }
 | ")" { RPARENT }
 | "," { COMMA }

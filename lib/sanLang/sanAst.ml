@@ -32,7 +32,6 @@ type tac_binop_self =
   | TacMinus
   | TacMult
   | TacDiv
-  | TacModulo
   | TacBitwiseOr
   | TacBitwiseAnd
   | TacBitwiseXor
@@ -53,13 +52,21 @@ type unary = {
   atom: atom
 }
 
+type fn_call = {
+  fn_name: string;
+  parameters: atom list
+}
+
 type san_rvalue = 
 | RVExpr of atom
 | RVUnary of unary
 | RVBinary of binary
-| RVDiscard 
-| RVLater
+| RVFunctionCall of fn_call
+| RVDiscard of san_type
+| RVLater of san_type
 
+type san_statement = 
+| SSDeclaration of string * san_rvalue
 
 type san_node =
 | External of {
