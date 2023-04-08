@@ -4,9 +4,9 @@ synopsis: "A register allocator project"
 description: "A register allocator project"
 maintainer: ["EruEri"]
 authors: ["EruEri"]
-license: ["MPL-2.0" "LGPL-3.0-or-later"]
-homepage: "https://github.com/EruEri/register-allocator"
-bug-reports: "https://github.com/EruEri/register-allocator/issues"
+license: ["GPL-3.0" "LGPL-3.0-or-later"]
+homepage: "https://github.com/EruEri/kosu-register-allocator"
+bug-reports: "https://github.com/EruEri/kosu-register-allocator/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.2"}
@@ -26,4 +26,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/EruEri/register-allocator.git"
+dev-repo: "git+https://github.com/EruEri/kosu-register-allocator.git"
