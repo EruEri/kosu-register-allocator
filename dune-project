@@ -1,26 +1,28 @@
-(lang dune 3.1)
+(lang dune 3.2)
 
-;************************************************************************************;
-; register_allocator : A compiler's register allocator                               ;
-; Copyright (C) 2022 Yves Ndiaye                                                     ;
-;                                                                                    ;  
-; This file is part of register_allocator.                                           ;
-;                                                                                    ;
-; register_allocator is free software; you can redistribute it and/or                ;
-; modify it under the terms of the GNU Lesser General Public                         ;
-; License as published by the Free Software Foundation; either                       ;
-; version 2.1 of the License, or (at your option) any later version.                 ;
-;                                                                                    ;
-; register_allocator is distributed in the hope that it will be useful,              ;
-; but WITHOUT ANY WARRANTY; without even the implied warranty of                     ;
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU                  ;
-; Lesser General Public License for more details.                                    ;
-;                                                                                    ;
-; You should have received a copy of the GNU Lesser General Public                   ;
-; License along with register_allocator; if not, write to the Free Software          ;
-; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301          ;
-; USA                                                                                ;
-;************************************************************************************;
+;**********************************************************************************************;
+;*                                                                                            *;
+;* This file is part of kosu-register-allocator                                               *;
+;* Copyright (C) 2022-2023 Yves Ndiaye                                                        *;
+;*                                                                                            *;
+;* kosu-register-allocator is free software: you can redistribute it and/or modify            *;
+;*  it under the terms either:                                                                *;
+;*                                                                                            *;
+;*    - the GNU General Public License as published by the Free Software Foundation,          *;
+;*        either version 3 of the License, or (at your option) any later version              *;
+;*   or                                                                                       *;
+;*                                                                                            *;
+;*     - the GNU Lesser General Public License as published by the Free Software Foundation,  *;
+;*        either version 3 of the License, or (at your option) any later version              *;
+;*                                                                                            *;
+;* kosu-register-allocator is distributed in the hope that it will be useful,                 *;
+;*   but WITHOUT ANY WARRANTY;                                                                *;
+;* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR           *;
+;* PURPOSE.  See the GNU General Public License for more details.                             *;
+;* You should have received a copy of the GNU General Public License along                    *;
+;* with kosu-register-allocator. If not, see <http://www.gnu.org/licenses/>.                  *;
+;*                                                                                            *;
+;**********************************************************************************************;
 
 
 (name register_allocator)
@@ -28,13 +30,13 @@
 (generate_opam_files true)
 
 (source
- (github EruEri/register-allocator))
+ (github EruEri/kosu-register-allocator))
 
 (authors "EruEri")
 
 (maintainers "EruEri")
 
-(license LGPL-2.1-or-later)
+(license GPL-3.0 LGPL-3.0-or-later)
 
 (package
  (name register_allocator)
