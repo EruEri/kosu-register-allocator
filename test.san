@@ -1,0 +1,4 @@
+def add($x: ssize, $y: ssize) ssize:
+    $z = $x + $y;
+    return $z
+end

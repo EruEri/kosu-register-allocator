@@ -16,7 +16,6 @@
 (**********************************************************************************************)
 
 open Lexing
-open Lexer
 module I = Parser.MenhirInterpreter
 
 let rec parse lexbuf (checkpoint : SanAst.san_module I.checkpoint) =
@@ -29,7 +28,7 @@ let rec parse lexbuf (checkpoint : SanAst.san_module I.checkpoint) =
         parse lexbuf checkpoint
       with
       | result -> result
-      | exception Lexer.Raw_Lexer_Error e -> Result.Error e
+      | exception SanError.Raw_Lexer_Error e -> Result.Error e
       | exception _ -> failwith "Uncatched Lexer Error")
   | I.Shifting _ | I.AboutToReduce _ ->
       let checkpoint = I.resume checkpoint in
@@ -39,13 +38,13 @@ let rec parse lexbuf (checkpoint : SanAst.san_module I.checkpoint) =
       let current_lexeme = Lexing.lexeme lexbuf in
       let err, state = (* get_parse_error env*) "TODO", None in
       Result.error
-        (Syntax_Error { position; current_lexeme; message = err; state })
+        (SanError.Syntax_Error { position; current_lexeme; message = err; state })
   | I.Accepted v -> Ok v
   | I.Rejected ->
       let position = Lexer.current_position lexbuf in
       let current_lexeme = Lexing.lexeme lexbuf in
       Result.error
-        (Syntax_Error
+        (SanError.Syntax_Error
            {
              position;
              current_lexeme;

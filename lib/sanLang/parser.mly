@@ -49,7 +49,7 @@ san_module:
     | list(san_node) EOF { $1 }
 
 san_node:
-    | EXTERNAL Identifier delimited(LPARENT, separated_list(COMMA, san_type), RPARENT) san_type option(preceded(EQUAL, String_lit)) {
+    | EXTERNAL Label delimited(LPARENT, separated_list(COMMA, san_type), RPARENT) san_type option(preceded(EQUAL, String_lit)) {
         External { fn_name = $2; signature = ($3, $4); cname = $5 }
     }
     | san_function { $1 }
@@ -200,11 +200,11 @@ san_ending:
     | IF atom GOTO Label GOTO Label { SE_If {expr = $2; if_label = $4; else_label = $6 } }
 
 san_basic_block:
-    | Label COLON ENDLINE nonempty_list(san_statement) option(san_ending) {
+    | Label COLON nonempty_list(san_statement) option(san_ending) {
         {
             label = $1;
-            statements = $4;
-            ending = $5
+            statements = $3;
+            ending = $4
         }
     }
 starting_basic_block:

@@ -73,7 +73,7 @@ let run cmd =
   ) in
   let san_modules = match san_module_res with
   | Ok san_module -> san_module
-  | Error error -> raise @@ Lexer.Raw_Lexer_Error (error) in
+  | Error error -> raise @@ SanError.Raw_Lexer_Error (error) in
   let () = ignore san_modules in
   ()
 

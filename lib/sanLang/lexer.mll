@@ -18,27 +18,7 @@
 {
     open Parser
     open Lexing
-
-    type san_position = {
-        start_position : Lexing.position;
-        end_position : Lexing.position;
-    }
-
-    type lexer_error = 
-    | Unexpected_escaped_char of san_position * string
-    | Unclosed_string of san_position
-    | Syntax_Error of {
-        position: san_position;
-        current_lexeme: string;
-        message: string;
-        state: int option
-    }
-
-    exception Raw_Lexer_Error of lexer_error
-
-    let raw_lexer_error e = Raw_Lexer_Error e
-
-
+    open SanError
 
     let current_position lexbuf = 
         { start_position = lexbuf.lex_start_p; end_position = lexbuf.lex_curr_p }
@@ -61,7 +41,7 @@ let upLetter = ['A'-'Z']
 
 let label = (loLetter | upLetter) (loLetter | upLetter | '.' | digit | '_')*
 
-let identifiant = (loLetter | '_') (loLetter | upLetter | digit | "_")*
+let identifiant = '$' (loLetter | upLetter | digit | "_")*
 
 let decimal_integer = digit (digit | '_')*
 let hex_integer = '0' ('x' | 'X') (digit | ['a'-'f'] | ['A'-'F']) (digit | ['a'-'f'] | ['A'-'F'] | '_')*
