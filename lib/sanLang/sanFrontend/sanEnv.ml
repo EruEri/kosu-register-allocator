@@ -1,7 +1,7 @@
 (**********************************************************************************************)
 (*                                                                                            *)
 (* This file is part of San: A 3 address code language/compiler                               *)
-(* Copyright (C) 2023 Yves Ndiaye                                                             *)
+(* Copyright (C) 2022-2023 Yves Ndiaye                                                        *)
 (*                                                                                            *)
 (* San is free software: you can redistribute it and/or modify it under the terms             *)
 (* of the GNU General Public License as published by the Free Software Foundation,            *)
@@ -16,21 +16,13 @@
 (**********************************************************************************************)
 
 
-type san_position = {
-  start_position : Lexing.position;
-  end_position : Lexing.position;
-}
+open SanAst 
 
-type 'a loc = { value : 'a; position : san_position }
+type variable = (string * san_type)
+type env = variable list
 
-let line_column_of_position p =
-  let line_number = p.Lexing.pos_lnum in
-  let column = p.Lexing.pos_cnum - p.Lexing.pos_bol + 1 in
-  (line_number, column)
+let exists: string -> env -> bool = List.mem_assoc
 
-let located_value start_position end_position value =
-  { value; position = { start_position; end_position } }
+let add typed_variable env: env = typed_variable::env
 
-
-let map f location = { location with value = f location.value }
-let map_use f location = { value = f location; position = location.position }
+let typeof : string -> env -> san_type option = List.assoc_opt

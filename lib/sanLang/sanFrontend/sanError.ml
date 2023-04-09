@@ -28,9 +28,14 @@ type lexer_error =
   state: int option
 }
 
+type san_error = 
+| Undefinded_Variable of string loc
+
 exception Raw_Lexer_Error of lexer_error
+exception San_error of san_error
 
 let raw_lexer_error e = Raw_Lexer_Error e
+let san_error e = San_error e
 
 
 let string_of_position_error { start_position; end_position } =

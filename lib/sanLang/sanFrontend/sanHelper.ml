@@ -16,21 +16,3 @@
 (**********************************************************************************************)
 
 
-type san_position = {
-  start_position : Lexing.position;
-  end_position : Lexing.position;
-}
-
-type 'a loc = { value : 'a; position : san_position }
-
-let line_column_of_position p =
-  let line_number = p.Lexing.pos_lnum in
-  let column = p.Lexing.pos_cnum - p.Lexing.pos_bol + 1 in
-  (line_number, column)
-
-let located_value start_position end_position value =
-  { value; position = { start_position; end_position } }
-
-
-let map f location = { location with value = f location.value }
-let map_use f location = { value = f location; position = location.position }
