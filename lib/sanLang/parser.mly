@@ -17,6 +17,7 @@
 
 %{
     open SanAst
+    open SanPosition
 %}
 
 %token <Nativeint.t> Integer_lit
@@ -26,7 +27,7 @@
 %token LPARENT RPARENT
 %token SSIZE BOOL STRINGL UNIT COMMA COLON SEMICOLON
 %token IF GOTO DEF EXTERNAL TRUE FALSE DISCARD LATEINIT END
-%token OR ENDLINE RETURN
+%token OR RETURN
 %token PIPE
 %token AND
 %token XOR 
@@ -45,6 +46,12 @@
 %type <SanAst.atom> atom
 
 %%
+
+%inline located(X): x=X {
+  SanPosition.located_value $startpos $endpos x
+};;
+
+
 san_module:
     | list(san_node) EOF { $1 }
 

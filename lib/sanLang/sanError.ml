@@ -16,10 +16,7 @@
 (**********************************************************************************************)
 
 
-type san_position = {
-  start_position : Lexing.position;
-  end_position : Lexing.position;
-}
+open SanPosition
 
 type lexer_error = 
 | Unexpected_escaped_char of san_position * string
@@ -31,10 +28,9 @@ type lexer_error =
   state: int option
 }
 
-let line_column_of_position p =
-  let line_number = p.Lexing.pos_lnum in
-  let column = p.Lexing.pos_cnum - p.Lexing.pos_bol + 1 in
-  (line_number, column)
+exception Raw_Lexer_Error of lexer_error
+
+let raw_lexer_error e = Raw_Lexer_Error e
 
 
 let string_of_position_error { start_position; end_position } =
@@ -55,9 +51,6 @@ let string_of_position_error { start_position; end_position } =
     Printf.sprintf "Lines %d-%d, Characters %d-%d" start_position_line
       end_position_line start_position_column end_position_column
 
-exception Raw_Lexer_Error of lexer_error
-
-let raw_lexer_error e = Raw_Lexer_Error e
 
 let string_of_lexer_error filename = function
 | Syntax_Error { position; current_lexeme; message; state } ->

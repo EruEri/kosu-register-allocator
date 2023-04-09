@@ -24,7 +24,7 @@ type atom =
   | Variable of string
   | Boolean of bool
 
-type typed_atom = { atom_type : san_type; atom : atom }
+(* type typed_atom = { atom_type : san_type; atom : atom } *)
 
 type tac_binop_bool =
   | TacOr

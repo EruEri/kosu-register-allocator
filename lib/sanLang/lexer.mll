@@ -19,6 +19,7 @@
     open Parser
     open Lexing
     open SanError
+    open SanPosition
 
     let current_position lexbuf = 
         { start_position = lexbuf.lex_start_p; end_position = lexbuf.lex_curr_p }
