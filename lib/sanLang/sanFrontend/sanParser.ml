@@ -18,6 +18,15 @@
 open Lexing
 module I = Parser.MenhirInterpreter
 
+let get_parse_error env =
+  match I.stack env with
+  | (lazy Nil) -> ("Invalid syntax", None)
+  | (lazy (Cons (I.Element (state, _element, _, _), _))) -> (
+      let nb_state = I.number state in
+      try (SanParserMessages.message nb_state, Some nb_state)
+      with Not_found ->
+        ("invalid syntax (no specific message for this eror)", None))
+
 let rec parse lexbuf (checkpoint : SanAst.san_module I.checkpoint) =
   match checkpoint with
   | I.InputNeeded _env -> (
@@ -36,7 +45,7 @@ let rec parse lexbuf (checkpoint : SanAst.san_module I.checkpoint) =
   | I.HandlingError env ->
       let position = Lexer.current_position lexbuf in
       let current_lexeme = Lexing.lexeme lexbuf in
-      let err, state = (* get_parse_error env*) "TODO", None in
+      let err, state = get_parse_error env in
       Result.error
         (SanError.Syntax_Error { position; current_lexeme; message = err; state })
   | I.Accepted v -> Ok v
