@@ -15,7 +15,3 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module Cli = SanFrontend.SanCli
-
-module Frontend = SanFrontend
-module Typed = SanTyped

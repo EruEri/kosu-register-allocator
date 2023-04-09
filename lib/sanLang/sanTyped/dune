@@ -15,8 +15,10 @@
 ;*                                                                                            *;
 ;**********************************************************************************************;
 
+
 (library
- (name sanLang)
+ (name sanTyped)
  (enabled_if
   (= %{profile} san))
- (libraries kosu_register_allocator sanFrontend sanTyped))
+ (modules sanTyAst)
+ (libraries sanFrontend))
