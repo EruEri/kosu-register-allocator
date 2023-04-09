@@ -117,4 +117,10 @@ and type_check_block ~return_type san_module env ({ label = _; statements; endin
       in
       env
   end
+and type_check_function san_module san_function = let open SanPosition in
+  let base_env = san_function.parameters |> List.map (fun (p, t) -> p.value, t.value) |> SanEnv.of_list in
+  let _ = san_function.san_basic_blocks |> List.fold_left ( 
+    type_check_block ~return_type:(san_function.return_type.value) san_module 
+  ) base_env in
+  ()
 

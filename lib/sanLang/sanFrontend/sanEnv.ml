@@ -21,6 +21,10 @@ open SanAst
 type variable = (string * san_type)
 type env = variable list
 
+let empty: env = []
+
+let of_list: (string * san_type) list -> env = fun list -> list 
+
 let exists: string -> env -> bool = List.mem_assoc
 
 let add typed_variable env: env = typed_variable::env
