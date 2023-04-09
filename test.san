@@ -1,4 +1,4 @@
 def add($x: ssize, $y: ssize) ssize:
-    $z = $x + $y;
-    return true
+    $z = $x + $y
+    return 10
 end

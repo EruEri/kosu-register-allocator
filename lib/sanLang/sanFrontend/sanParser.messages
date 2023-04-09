@@ -20,7 +20,7 @@ san_module: EXTERNAL XOR
 ## EXTERNAL
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<c function name>"
 
 san_module: EXTERNAL Label XOR
 ##
@@ -32,7 +32,7 @@ san_module: EXTERNAL Label XOR
 ## EXTERNAL Label
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "("
 
 san_module: EXTERNAL Label LPARENT XOR
 ##
@@ -44,7 +44,7 @@ san_module: EXTERNAL Label LPARENT XOR
 ## EXTERNAL Label LPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: EXTERNAL Label LPARENT BOOL XOR
 ##
@@ -57,7 +57,7 @@ san_module: EXTERNAL Label LPARENT BOOL XOR
 ## san_type
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ")" or ","
 
 san_module: EXTERNAL Label LPARENT BOOL COMMA XOR
 ##
@@ -69,7 +69,7 @@ san_module: EXTERNAL Label LPARENT BOOL COMMA XOR
 ## san_type COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: EXTERNAL Label LPARENT RPARENT XOR
 ##
@@ -81,7 +81,7 @@ san_module: EXTERNAL Label LPARENT RPARENT XOR
 ## EXTERNAL Label LPARENT loption(separated_nonempty_list(COMMA,located(san_type))) RPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: EXTERNAL Label LPARENT RPARENT BOOL XOR
 ##
@@ -93,7 +93,7 @@ san_module: EXTERNAL Label LPARENT RPARENT BOOL XOR
 ## EXTERNAL Label LPARENT loption(separated_nonempty_list(COMMA,located(san_type))) RPARENT san_type
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "=" or "<end of external declaration>"
 
 san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL XOR
 ##
@@ -105,7 +105,7 @@ san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL XOR
 ## EQUAL
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "String litteral"
 
 san_module: DEF XOR
 ##
@@ -117,7 +117,7 @@ san_module: DEF XOR
 ## DEF
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<function name>"
 
 san_module: DEF Label XOR
 ##
@@ -129,7 +129,7 @@ san_module: DEF Label XOR
 ## DEF Label
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "("
 
 san_module: DEF Label LPARENT XOR
 ##
@@ -141,7 +141,7 @@ san_module: DEF Label LPARENT XOR
 ## DEF Label LPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<parameter name>"
 
 san_module: DEF Label LPARENT Identifier XOR
 ##
@@ -154,7 +154,7 @@ san_module: DEF Label LPARENT Identifier XOR
 ## Identifier
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ":"
 
 san_module: DEF Label LPARENT Identifier COLON XOR
 ##
@@ -167,7 +167,7 @@ san_module: DEF Label LPARENT Identifier COLON XOR
 ## Identifier COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: DEF Label LPARENT Identifier COLON BOOL XOR
 ##
@@ -180,7 +180,7 @@ san_module: DEF Label LPARENT Identifier COLON BOOL XOR
 ## Identifier COLON parameter_san_type
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "," or ")"
 
 san_module: DEF Label LPARENT Identifier COLON BOOL COMMA XOR
 ##
@@ -192,7 +192,7 @@ san_module: DEF Label LPARENT Identifier COLON BOOL COMMA XOR
 ## Identifier COLON parameter_san_type COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ","
 
 san_module: DEF Label LPARENT RPARENT XOR
 ##
@@ -204,7 +204,7 @@ san_module: DEF Label LPARENT RPARENT XOR
 ## DEF Label LPARENT loption(separated_nonempty_list(COMMA,__anonymous_0)) RPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL XOR
 ##
@@ -216,7 +216,7 @@ san_module: DEF Label LPARENT RPARENT BOOL XOR
 ## DEF Label LPARENT loption(separated_nonempty_list(COMMA,__anonymous_0)) RPARENT san_type
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ":"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON XOR
 ##
@@ -228,7 +228,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON XOR
 ## DEF Label LPARENT loption(separated_nonempty_list(COMMA,__anonymous_0)) RPARENT san_type COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<first statement>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier XOR
 ##
@@ -240,7 +240,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier XOR
 ## Identifier
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "="
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL XOR
 ##
@@ -252,7 +252,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL XOR
 ## Identifier EQUAL
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "discard", "lateinit", "<identifier>", "-", "!", "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL NOT XOR
 ##
@@ -264,7 +264,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL NOT XOR
 ## NOT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS XOR
 ##
@@ -276,7 +276,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS XOR
 ## MINUS
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT XOR
 ##
@@ -288,7 +288,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT XOR
 ## LATEINIT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT COLON XOR
 ##
@@ -300,7 +300,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT COLON
 ## LATEINIT COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier UNIT
 ##
@@ -313,7 +313,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier UNI
 ## Identifier
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<binary operator>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT XOR
 ##
@@ -325,7 +325,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPA
 ## Identifier LPARENT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ")" or "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT FALSE XOR
 ##
