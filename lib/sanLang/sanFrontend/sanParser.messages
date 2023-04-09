@@ -338,7 +338,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPA
 ## atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ")" or ","
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT FALSE COMMA XOR
 ##
@@ -350,7 +350,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPA
 ## atom COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD XOR
 ##
@@ -362,7 +362,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD XOR
 ## DISCARD
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD COLON XOR
 ##
@@ -374,7 +374,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD COLON 
 ## DISCARD COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS FALSE XOR
 ##
@@ -386,7 +386,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS FALSE XO
 ## Identifier EQUAL san_rvalue
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ";"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL FALSE UNIT
 ##
@@ -415,7 +415,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL FALSE UNIT
 ## atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<binary operator>" or ";"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier XOR XOR
 ##
@@ -427,7 +427,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier XOR
 ## atom XOR
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUPEQ XOR
 ##
@@ -439,7 +439,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUP
 ## atom SUPEQ
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUP XOR
 ##
@@ -451,7 +451,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUP
 ## atom SUP
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHIFTRIGHT XOR
 ##
@@ -463,7 +463,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHI
 ## atom SHIFTRIGHT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHIFTLEFT XOR
 ##
@@ -475,7 +475,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHI
 ## atom SHIFTLEFT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PLUS XOR
 ##
@@ -487,7 +487,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PLU
 ## atom PLUS
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PIPE XOR
 ##
@@ -499,7 +499,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PIP
 ## atom PIPE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier OR XOR
 ##
@@ -511,7 +511,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier OR 
 ## atom OR
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MULT XOR
 ##
@@ -523,7 +523,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MUL
 ## atom MULT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MINUS XOR
 ##
@@ -535,7 +535,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MIN
 ## atom MINUS
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INFEQ XOR
 ##
@@ -547,7 +547,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INF
 ## atom INFEQ
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INF XOR
 ##
@@ -559,7 +559,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INF
 ## atom INF
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DOUBLEQUAL XOR
 ##
@@ -571,7 +571,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DOU
 ## atom DOUBLEQUAL
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIV XOR
 ##
@@ -583,7 +583,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIV
 ## atom DIV
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIF XOR
 ##
@@ -595,7 +595,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIF
 ## atom DIF
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AND XOR
 ##
@@ -607,7 +607,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AND
 ## atom AND
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AMPERSAND XOR
 ##
@@ -619,7 +619,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AMP
 ## atom AMPERSAND
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON RETURN FALSE XOR
 ##
@@ -631,7 +631,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## DEF Label LPARENT loption(separated_nonempty_list(COMMA,__anonymous_0)) RPARENT san_type COLON starting_basic_block
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "end" or "<label>:"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label XOR
 ##
@@ -643,7 +643,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## Label
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected ":"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label COLON XOR
 ##
@@ -655,7 +655,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## Label COLON
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<identifier> = ..."
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON XOR
 ##
@@ -668,7 +668,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## san_statement
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "return", "if" or "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON RETURN XOR
 ##
@@ -680,7 +680,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## RETURN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF XOR
 ##
@@ -692,7 +692,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## IF
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE XOR
 ##
@@ -704,7 +704,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## IF atom
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "goto"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO XOR
 ##
@@ -716,7 +716,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## IF atom GOTO
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO Label XOR
 ##
@@ -728,7 +728,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## IF atom GOTO Label
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "goto"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO Label GOTO XOR
 ##
@@ -740,7 +740,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## IF atom GOTO Label GOTO
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label COLON Identifier EQUAL Identifier SEMICOLON RETURN FALSE XOR
 ##
@@ -752,7 +752,7 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEM
 ## san_basic_block
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "end" or "<identifier> = ..."
 
 san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL String_lit XOR
 ##
@@ -764,5 +764,5 @@ san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL String_lit XOR
 ## san_node
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expected "external", "def" or "<eof>"
 
