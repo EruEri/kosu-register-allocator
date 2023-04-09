@@ -50,13 +50,13 @@ module ValidateFunction = struct
     let duplicated = labels |> duplicated (fun lhs rhs -> lhs.value = rhs.value) in
     match duplicated with
     | [] -> ok
-    | t::_ -> err @@ Duplicated_label t
+    | t::_ -> err @@ Duplicated_label (san_function.fn_name, (t |> List.hd).value , t)
   
   let check_duplicated_parameters san_function = 
     let duplicated = san_function.parameters |> duplicated (fun (l, _) (r, _) -> l.value = r.value ) in
     match duplicated with
     | [] -> ok
-    | t::_ -> err @@ Duplicated_paramters (List.map fst t)
+    | t::_ -> err @@ Duplicated_paramters (san_function.fn_name, (t |> List.hd |> fst).value, List.map fst t)
 
   let check_body san_module san_function = 
     match SanTypechecker.type_check_function san_module san_function with
@@ -80,7 +80,9 @@ module ValidateModule = struct
     ) in
     match duplicated with 
     | [] -> ok
-    | t::_ -> err @@ Duplicated_function (t |> List.map SanHelper.calling_name)
+    | t::_ -> 
+      let calling_name = SanHelper.calling_name (List.hd t) in
+      err @@ Duplicated_function (calling_name, t |> List.map SanHelper.calling_name)
 
 
   let valide_node san_module = function
@@ -101,7 +103,7 @@ let validate (san_module: san_module) =
 (**
   @raise San_Validation_Error
 *)
-let validate (san_module: san_module) = 
+let validate filename (san_module: san_module) = 
   match validate san_module with
-  | Error e -> raise @@ San_Validation_Error e
+  | Error e -> raise @@ San_Validation_Error (filename, e)
   | Ok san_mod -> san_mod

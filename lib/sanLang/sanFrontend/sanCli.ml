@@ -72,11 +72,12 @@ let san_module_parse file =
     SanParser.parse lexbuf (Parser.Incremental.san_module lexbuf.lex_curr_p)
   ) in
   let san_modules = match san_module_res with
-  | Ok san_module -> SanValidation.validate san_module
-  | Error error -> raise @@ SanError.Raw_Lexer_Error (error) in
+  | Ok san_module -> SanValidation.validate file san_module
+  | Error error -> raise @@ SanError.File_Lexer_Error (file, error) in
   san_modules
 
 let run cmd = 
+  let () = SanPprintErr.register_san_error () in
   let { file } = cmd in
   let san_module = san_module_parse file in
   let () = ignore san_module in
