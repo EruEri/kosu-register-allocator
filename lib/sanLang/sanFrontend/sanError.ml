@@ -77,6 +77,7 @@ type san_validation_error =
 
 exception Raw_Lexer_Error of lexer_error
 exception San_error of san_error
+exception San_Validation_Error of san_validation_error
 
 let raw_lexer_error e = Raw_Lexer_Error e
 let san_error e = San_error e

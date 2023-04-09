@@ -97,3 +97,11 @@ let validate (san_module: san_module) =
       else ValidateModule.valide_node san_module node
     ) ok in
     validation |> Result.map (fun _ -> san_module)
+
+(**
+  @raise San_Validation_Error
+*)
+let validate (san_module: san_module) = 
+  match validate san_module with
+  | Error e -> raise @@ San_Validation_Error e
+  | Ok san_mod -> san_mod
