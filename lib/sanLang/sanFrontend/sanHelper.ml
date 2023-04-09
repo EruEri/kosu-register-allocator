@@ -42,3 +42,6 @@ let find_sig_opt (san_module: SanAst.san_module) name =
     | External _ -> None
     | Declaration _ -> None
 )
+
+let calling_name = function
+| Declaration {fn_name; } | External {fn_name; _} -> fn_name

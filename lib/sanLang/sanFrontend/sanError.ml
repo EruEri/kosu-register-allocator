@@ -69,6 +69,12 @@ type san_error =
   found: int;
 }
 
+type san_validation_error =
+| Duplicated_label of string loc list
+| Duplicated_paramters of string loc list
+| Duplicated_function of string loc list
+| Sve_error of san_error
+
 exception Raw_Lexer_Error of lexer_error
 exception San_error of san_error
 
@@ -113,11 +119,11 @@ let string_of_lexer_error filename = function
     |> Printf.sprintf "\nFile \"%s\" %s: String litteral not terminated"
          filename
 
-let register_kosu_error () =
+let register_san_error () =
 Printexc.register_printer (fun exn ->
     match exn with
     | Raw_Lexer_Error e ->
         Some (string_of_lexer_error "FILE" e)
     | _ -> None)
 
-let () = register_kosu_error ()
+let () = register_san_error ()

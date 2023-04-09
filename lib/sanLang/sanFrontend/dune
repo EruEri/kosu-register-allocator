@@ -39,5 +39,5 @@
  (name sanFrontend)
  (enabled_if
   (= %{profile} san))
- (modules lexer parser sanAst sanCli sanParser sanError sanPosition sanTypecker sanHelper sanEnv)
+ (modules lexer parser sanAst sanCli sanParser sanError sanPosition sanTypechecker sanValidation sanHelper sanEnv)
  (libraries menhirLib kosu_register_allocator cmdLiner))
