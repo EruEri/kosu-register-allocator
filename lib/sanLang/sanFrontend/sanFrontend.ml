@@ -15,6 +15,3 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module SanAst = SanAst
-module Parser = Parser
-module Lexer = Lexer

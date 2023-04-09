@@ -32,6 +32,17 @@ type lexer_error =
 type san_error = 
 | Undefinded_Variable of string loc
 | Undefined_Function of string loc
+| Already_define_variable of string loc
+| If_Not_boolean_type of {
+  error_location: unit loc;
+  expected: san_type;
+  found: san_type;
+}
+| Wrong_return_type of {
+  error_location: unit loc;
+  expected: san_type;
+  found: san_type;
+}
 | Incompatible_type of {
   expected: san_type;
   found: san_type loc;

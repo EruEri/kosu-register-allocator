@@ -34,7 +34,7 @@ let rec typeof_atom san_module env atom_loc = match atom_loc.SanPosition.value w
 and typeof_rvalue san_module env rvalue_loc = 
   let error_location = SanPosition.unit_located rvalue_loc in
 match rvalue_loc.SanPosition.value with
-| RVExpr e -> typeof_atom san_module env  e
+| RVExpr e -> typeof_atom san_module env e
 | RVDiscard t | RVLater t -> t.value
 | RVUnary record -> 
   let type_atom = typeof_atom san_module env record.atom in
@@ -87,3 +87,34 @@ match rvalue_loc.SanPosition.value with
   ) in
 
   (snd signature).value
+
+and type_check_block ~return_type san_module env ({ label = _; statements; ending } as block) = 
+  match statements with
+  | stmt::q -> begin match stmt with
+    | SSDeclaration (variable, san_rvalue) -> 
+      begin match SanEnv.exists variable.value env with
+      | true -> raise @@ san_error @@ Already_define_variable variable
+      | false ->
+        let typeof = typeof_rvalue san_module env san_rvalue in
+        let extended_env = SanEnv.add (variable.value, typeof) env in
+        type_check_block ~return_type san_module extended_env { block with statements = q}
+    end
+  end
+  | [] -> begin match ending with
+    | None -> env
+    | Some (SE_return atom) ->
+      let atom_type = typeof_atom san_module env atom in
+      let () = if atom_type <> return_type then 
+        let error_location = SanPosition.unit_located atom in
+        raise @@ san_error @@ Wrong_return_type {error_location; expected = return_type; found = atom_type}
+      in
+      env
+    | Some (SE_If {expr; _}) ->
+      let atom_type = typeof_atom san_module env expr in
+      let () = if atom_type <> Boolean then 
+        let error_location = SanPosition.unit_located expr in
+        raise @@ san_error @@ If_Not_boolean_type {error_location; expected = return_type; found = atom_type}
+      in
+      env
+  end
+
