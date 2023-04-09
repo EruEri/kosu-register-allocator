@@ -1,7 +1,7 @@
 (**********************************************************************************************)
 (*                                                                                            *)
 (* This file is part of San: A 3 address code language/compiler                               *)
-(* Copyright (C) 2023 Yves Ndiaye                                                             *)
+(* Copyright (C) 2022-2023 Yves Ndiaye                                                        *)
 (*                                                                                            *)
 (* San is free software: you can redistribute it and/or modify it under the terms             *)
 (* of the GNU General Public License as published by the Free Software Foundation,            *)
@@ -15,6 +15,6 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-let () = 
-  let code = SanLang.Cli.eval () in
-  exit code
+module SanAst = SanAst
+module Parser = Parser
+module Lexer = Lexer

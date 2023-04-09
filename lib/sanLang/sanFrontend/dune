@@ -15,8 +15,29 @@
 ;*                                                                                            *;
 ;**********************************************************************************************;
 
-(library
- (name sanLang)
+(rule
  (enabled_if
   (= %{profile} san))
- (libraries kosu_register_allocator sanFrontend))
+ (target lexer.ml)
+ (deps lexer.mll)
+ (action
+  (chdir
+   %{workspace_root}
+   (run %{bin:ocamllex} -q -o %{target} %{deps}))))
+
+(rule
+ (enabled_if
+  (= %{profile} san))
+ (targets parser.ml parser.mli)
+ (deps parser.mly)
+ (action
+  (chdir
+   %{workspace_root}
+   (run %{bin:menhir} --table %{deps}))))
+
+(library
+ (name sanFrontend)
+ (enabled_if
+  (= %{profile} san))
+ (modules lexer parser sanAst sanCli sanParser sanError sanPosition)
+ (libraries menhirLib kosu_register_allocator cmdLiner))
