@@ -16,6 +16,7 @@
 (**********************************************************************************************)
 
 
+open SanAst
 open SanPosition
 
 type lexer_error = 
@@ -30,6 +31,32 @@ type lexer_error =
 
 type san_error = 
 | Undefinded_Variable of string loc
+| Undefined_Function of string loc
+| Incompatible_type of {
+  expected: san_type;
+  found: san_type loc;
+}
+| BinOp_diff_type of {
+  error_location: unit loc;
+  lhs: san_type;
+  rhs: san_type
+}
+| UnaryOperator_not_suppored of {
+  error_location: unit loc;
+  unop: tac_unop;
+  for_type: san_type;
+}
+| BinaryOperator_not_suppored of {
+  error_location: unit loc;
+  binop: tac_binop;
+  for_type: san_type;
+}
+| Function_Wrong_args_number of {
+  error_location: unit loc;
+  fn_name: string;
+  expected: int;
+  found: int;
+}
 
 exception Raw_Lexer_Error of lexer_error
 exception San_error of san_error

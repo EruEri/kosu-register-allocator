@@ -34,3 +34,5 @@ let located_value start_position end_position value =
 
 let map f location = { location with value = f location.value }
 let map_use f location = { value = f location; position = location.position }
+
+let unit_located loc = loc |> map (fun _ -> ())
