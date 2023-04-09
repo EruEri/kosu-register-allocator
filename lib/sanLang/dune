@@ -22,5 +22,5 @@
  (name sanLang)
  (enabled_if
   (= %{profile} san))
- (modules lexer parser sanAst)
- (libraries menhirLib kosu_register_allocator))
+ (modules lexer parser sanAst sanCli)
+ (libraries menhirLib kosu_register_allocator cmdLiner))
