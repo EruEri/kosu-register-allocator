@@ -27,6 +27,12 @@
     type lexer_error = 
     | Unexpected_escaped_char of san_position * string
     | Unclosed_string of san_position
+    | Syntax_Error of {
+        position: san_position;
+        current_lexeme: string;
+        message: string;
+        state: int option
+    }
 
     exception Raw_Lexer_Error of lexer_error
 

@@ -41,12 +41,12 @@
 
 %start san_module
 
-%type <SanAst.san_module list> san_module
+%type <SanAst.san_module> san_module
 %type <SanAst.atom> atom
 
 %%
 san_module:
-    | list(san_node) EOF { [] }
+    | list(san_node) EOF { $1 }
 
 san_node:
     | EXTERNAL Identifier delimited(LPARENT, separated_list(COMMA, san_type), RPARENT) san_type option(preceded(EQUAL, String_lit)) {
