@@ -1,7 +1,7 @@
 (**********************************************************************************************)
 (*                                                                                            *)
 (* This file is part of San: A 3 address code language/compiler                               *)
-(* Copyright (C) 2022-2023 Yves Ndiaye                                                        *)
+(* Copyright (C) 2023 Yves Ndiaye                                                             *)
 (*                                                                                            *)
 (* San is free software: you can redistribute it and/or modify it under the terms             *)
 (* of the GNU General Public License as published by the Free Software Foundation,            *)
@@ -15,23 +15,3 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module SanEnv = SanEnv
-module SanTypechecker = SanTypechecker
-module SanPosition = SanPosition
-module SanAst = SanAst
-
-module SanPprint = struct
-  let string_of_san_type = SanPprint.string_of_san_type
-end
-
-let register_san_error = SanPprintErr.register_san_error
-
-let san_module_parse file = 
-  let san_module_res = In_channel.with_open_bin file (fun ic -> 
-    let lexbuf = Lexing.from_channel ic in
-    SanParser.parse lexbuf (Parser.Incremental.san_module lexbuf.lex_curr_p)
-  ) in
-  let san_modules = match san_module_res with
-  | Ok san_module -> SanValidation.validate file san_module
-  | Error error -> raise @@ SanError.File_Lexer_Error (file, error) in
-  san_modules

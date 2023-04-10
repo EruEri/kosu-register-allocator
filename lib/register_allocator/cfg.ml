@@ -114,12 +114,27 @@ module Make (CfgS : Cfg_Sig) = struct
       ending : 'b;
     }
 
+    let create_basic_block ~label ~cfg_statements ~followed_by ~ending = 
+      {
+        label;
+        cfg_statements;
+        followed_by = StringSet.of_list followed_by;
+        ending;
+      }
+
     type cfg = {
       entry_block : string;
       blocks :
         (cfg_statement, basic_block_end option) basic_block BasicBlockMap.t;
       parameters : variable list;
       locals_vars : TypedIdentifierSet.t;
+    }
+
+    let create_cfg ~entry_block ~parameters ~locals_vars blocks = {
+      entry_block;
+      blocks = blocks |> List.map (fun block -> block.label, block) |> List.to_seq |> BasicBlockMap.of_seq;
+      parameters;
+      locals_vars = TypedIdentifierSet.of_list locals_vars
     }
 
     let fetch_basic_block_from_label label_name bbset =

@@ -15,68 +15,46 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-open SanFrontend.SanAst
+open SanCfgAst.SanRegisterAllocator
+open SanTyped.SanTyAst
 
-type san_type = SanFrontend.SanAst.san_type
-type atom = SanFrontend.SanAst.atom
 
-type typed_atom = { atom_type : san_type; atom : atom } 
+let cfg_statement_of_san_statement ty_san_stmt =
+  let open Basic in
+  match ty_san_stmt with
+  | TySSDeclaration (s, ty_rvalue) -> CFG_STacDeclaration {identifier = s; trvalue = ty_rvalue}
 
-type ty_unary = {
-  unop: tac_unop;
-  ty_atom: typed_atom;
-}
+let cfg_ending_of_san_ending = 
+  let open Basic in
+  function
+| TySE_return atom -> Bbe_return atom
+| TYSE_If {expr; if_label; else_label} -> BBe_if {condition = expr; if_label; else_label}
+ 
 
-type ty_binary = {
-  binop: tac_binop;
-  tylhs: typed_atom;
-  tyrhs: typed_atom;
-}
+let cfg_block_of_san_block ~(next_block: ty_san_basic_block option) {label; statements; ending} =
+  let open Basic in
+  let cfg_statements = statements |> List.map cfg_statement_of_san_statement in
+  let cfg_ending = ending |> Option.map cfg_ending_of_san_ending in
+  let followed_by = match next_block with
+    | None -> []
+    | Some san_block -> san_block.label::[] in
+  let followed_by = match ending with
+    | Some TySE_return _ -> []
+    | Some TYSE_If {if_label; else_label; _} -> if_label::else_label::followed_by
+    | None -> followed_by
+  in 
+  create_basic_block ~label ~cfg_statements ~followed_by ~ending:cfg_ending
 
-type ty_fncall = {
-  fn_name: string;
-  parameters: typed_atom list
-}
 
-type ty_san_rvalue = 
-  | TyRVExpr of typed_atom
-  | TYRVUnary of ty_unary
-  | TYRVBinary of ty_binary
-  | TyRVFunctionCall of ty_fncall
-  | TyRVDiscard of san_type 
-  | TYRVLater of san_type
-
-type typed_san_rvalue = {
-  san_rvalue: ty_san_rvalue;
-  san_type: san_type
-}
-
-type ty_san_statement = TySSDeclaration of string * typed_san_rvalue
-
-type ty_san_ending =
-  | TySE_return of typed_atom
-  | TYSE_If of { expr : typed_atom; if_label : string ; else_label : string }
-
-type ty_san_basic_block = {
-    label : string ;
-    statements : ty_san_statement list;
-    ending : ty_san_ending option;
-}
-
-type ty_san_function = {
-  fn_name : string;
-  parameters : (string * san_type) list;
-  return_type : san_type ;
-  san_basic_blocks : ty_san_basic_block list;
-  locals: (string * san_type) list
-}
-
-type tysan_node =
-  | TyExternal of {
-      fn_name : string;
-      signature : (san_type list * san_type);
-      cname : string option;
-    }
-  | TyDeclaration of ty_san_function
-
-type tysan_module = tysan_node list
+let of_san_tyfunction san_tyfunction = 
+  let rec make_blocks blocks = match blocks with
+  | [] -> []
+  | t::[] -> [cfg_block_of_san_block ~next_block:None t]
+  | h1::(h2::q as xs) ->
+    (cfg_block_of_san_block ~next_block:(Some h2) h1)::make_blocks xs
+  in
+  let open Basic in
+  create_cfg ~entry_block:san_tyfunction.fn_name 
+    ~parameters:san_tyfunction.parameters
+    ~locals_vars:san_tyfunction.locals
+    (make_blocks san_tyfunction.san_basic_blocks)

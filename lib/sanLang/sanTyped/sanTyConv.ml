@@ -84,7 +84,7 @@ let of_san_basic_blocks san_module env san_basic_blocks =
   san_basic_blocks |> List.fold_left (fun (acc_env, acc_ty_bbl) basic_block -> 
     let extended_env, ty_bbl = of_san_basic_block san_module ~acc:[] acc_env basic_block in
     extended_env, ty_bbl::acc_ty_bbl
-  ) (env, []) |> snd |> List.rev
+  ) (env, []) |> (fun (env, list) -> env, List.rev list)
 let of_san_node san_module = function 
   | External {fn_name; signature = params, return; cname} ->
     TyExternal {
@@ -95,11 +95,13 @@ let of_san_node san_module = function
   | Declaration {fn_name; parameters; return_type; san_basic_blocks} ->
     let parameters = parameters |> List.map assoc_value in
     let env = SanEnv.of_list parameters in
+    let locals, san_basic_blocks =  of_san_basic_blocks san_module env san_basic_blocks in
      TyDeclaration {
       fn_name = fn_name.value;
       parameters;
       return_type = return_type.value;
-      san_basic_blocks = of_san_basic_blocks san_module env san_basic_blocks
+      san_basic_blocks;
+      locals
      }
 
 let of_san_module san_module = 
