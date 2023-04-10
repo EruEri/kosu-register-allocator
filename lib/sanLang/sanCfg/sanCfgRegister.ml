@@ -15,5 +15,49 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module SanCfgPprint = SanCfgPprint
-module SanCfgConv = SanCfgConv
+
+type color =
+  | R0
+  | R1
+  | R2
+  | R3
+  | R4
+  | R5
+  | R6
+  | R7
+  | R8
+  | R9
+  | R10
+  | R11
+  | R12
+  | R13
+
+type t = color
+
+let compare = compare
+
+let arguments_register = [
+    R0;
+    R1;
+    R2;
+    R3;
+    R4;
+    R5;
+    R6;
+    R7
+  ]
+
+let color_map = [
+    (R0, "aqua");
+    (R1, "red");
+    (R2, "fuchsia");
+    (R3, "green");
+    (R4, "navyblue");
+    (R5, "pink");
+    (R6, "orange");
+    (R7, "yellow");
+    (R8, "hotpink");
+    (R9, "indigo");
+    (R10, "magenta");
+    (R11, "purple")
+  ]

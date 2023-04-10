@@ -55,6 +55,10 @@ module Cfg_Command = struct
     ("basic", Basic); ("detail", Detail); ("liveness", Liveness )
   ]
 
+  let swap (a,b) = b, a
+
+  let lswap list = list |> List.map swap
+
   let format_term = 
     Arg.(
       value & opt (some string) None & info ~docv:"format" ~doc:"invoke the $(b,dot) command and generate graph with $(opt) image format" ["format"] 
@@ -115,6 +119,79 @@ module Cfg_Command = struct
     `Noblank;
   ]
 
+
+  let infered_name ~extension ~colored fn_name =
+    Printf.sprintf "%s.infered%s.%s" fn_name (if colored then "colored" else "") extension
+
+  let cfg_name ~extension ~ctype fn_name = 
+    Printf.sprintf "%s.%s.%s" ( cfg_type_enum |> lswap |> List.assoc ctype ) fn_name extension
+
+  let dot_infered_name = infered_name ~extension:"dot"
+  let dot_cfg_name = cfg_name ~extension:"dot"
+
+  let target_file file_type format filename = match format with
+  | None -> begin match file_type with
+    | `Infered colored -> dot_infered_name ~colored filename
+    | `Cfg (cfg_type) -> dot_cfg_name ~ctype:cfg_type filename
+  end 
+  | Some extension -> begin match file_type with
+    | `Infered colored -> infered_name ~colored filename ~extension
+    | `Cfg (cfg_type) -> cfg_name ~ctype:cfg_type filename ~extension
+  end
+
+  let write_cfg cfg_type ~oc san_function = 
+    match cfg_type with
+      | Basic -> 
+        let converted = SanCfg.SanCfgConv.basic_of_san_tyfunction san_function in
+        converted |> SanCfg.SanCfgPprint.dot_diagrah_of_cfg_basic |> SanCfg.SanCfgPprint.string_of_dot_graph ~out:oc 
+      | Detail ->
+        let converted = SanCfg.SanCfgConv.detail_of_san_tyfunction san_function in
+        converted |> SanCfg.SanCfgPprint.dot_diagrah_of_cfg_detail |> SanCfg.SanCfgPprint.string_of_dot_graph ~out:oc 
+      | Liveness -> 
+        let converted = SanCfg.SanCfgConv.liveness_of_san_tyfunction san_function in
+        converted |> SanCfg.SanCfgPprint.dot_diagrah_of_cfg_liveness |> SanCfg.SanCfgPprint.string_of_dot_graph ~out:oc 
+
+  let write_infered ~infered ~colored ~oc (san_function: SanTyped.SanTyAst.ty_san_function) = 
+    match infered with
+    | false -> ()
+    | true -> 
+      let livecfg = SanCfg.SanCfgConv.liveness_of_san_tyfunction san_function in
+      let transform = if colored then SanCfg.SanCfgPprint.export_colored_graph else SanCfg.SanCfgPprint.export_infer_graph_of_cfg in
+      transform ~outchan:oc livecfg ()
+
+  let export_from_san_function cmd (san_function: SanTyped.SanTyAst.ty_san_function) = 
+    match cmd.format with
+    | None -> (
+      let outchan_name = target_file (`Cfg cmd.cfg_type) cmd.format san_function.fn_name in
+      let () = Out_channel.with_open_bin outchan_name (fun oc ->
+        write_cfg cmd.cfg_type ~oc san_function
+      ) in
+
+      match cmd.variable_infer with
+      | false -> ()
+      | true -> 
+        let infered_ouchan = target_file (`Infered cmd.colored) cmd.format san_function.fn_name in
+        Out_channel.with_open_bin infered_ouchan (fun oc ->
+          write_infered ~infered:cmd.variable_infer ~colored:cmd.colored ~oc san_function
+        )
+    )
+    | Some export_format -> begin
+      let cfg_outname = target_file (`Cfg cmd.cfg_type) (cmd.format) san_function.fn_name in
+      let filename, tmp_cfg_out = Filename.open_temp_file "dot" "dot" in
+      let () = write_cfg cmd.cfg_type ~oc:tmp_cfg_out san_function in
+      let () = close_out tmp_cfg_out in
+      let _ = Sys.command (Printf.sprintf "dot -T%s -o %s %s" export_format cfg_outname filename) in
+      match cmd.variable_infer with
+      | false -> ()
+      | true ->
+        let infered_ouchan = target_file (`Infered cmd.colored) cmd.format san_function.fn_name in 
+        let tmp_infered_filename, tmp_infered_out = Filename.open_temp_file "infered" "infered" in
+        let () = write_infered ~infered:cmd.variable_infer ~colored:cmd.colored ~oc:tmp_infered_out san_function in
+        let () = close_out tmp_infered_out in
+        let _ = Sys.command (Printf.sprintf "dot -T%s -o %s %s" export_format infered_ouchan tmp_infered_filename ) in
+        ()
+    end
+
   let cfg_main cmd = 
     let { format; colored; cfg_type; variable_infer; fn_name; file } = cmd in
     let typed_san_module = SanTyped.of_file file in
@@ -130,6 +207,10 @@ module Cfg_Command = struct
       function 
       | TyDeclaration fn -> Some fn
       | TyExternal _ -> None
+    ) in
+
+    let () = filtered_san_module |> List.iter (fun (san_function: SanTyped.SanTyAst.ty_san_function) ->
+      export_from_san_function cmd san_function
     ) in
     ()
 
