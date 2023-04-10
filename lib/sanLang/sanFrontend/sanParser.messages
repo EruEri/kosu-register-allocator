@@ -1,15 +1,3 @@
-san_module: XOR
-##
-## Ends in an error in state: 0.
-##
-## san_module' -> . san_module [ # ]
-##
-## The known suffix of the stack is as follows:
-##
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 san_module: EXTERNAL XOR
 ##
 ## Ends in an error in state: 1.
@@ -280,7 +268,7 @@ Expected "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT XOR
 ##
-## Ends in an error in state: 43.
+## Ends in an error in state: 51.
 ##
 ## san_rvalue -> LATEINIT . COLON san_type [ SEMICOLON ]
 ##
@@ -292,7 +280,7 @@ Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT COLON XOR
 ##
-## Ends in an error in state: 44.
+## Ends in an error in state: 52.
 ##
 ## san_rvalue -> LATEINIT COLON . san_type [ SEMICOLON ]
 ##
@@ -301,56 +289,6 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT COLON
 ##
 
 Expected ": <type>"
-
-san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier UNIT
-##
-## Ends in an error in state: 46.
-##
-## atom -> Identifier . [ XOR SUPEQ SUP SHIFTRIGHT SHIFTLEFT SEMICOLON PLUS PIPE OR MULT MINUS INFEQ INF DOUBLEQUAL DIV DIF AND AMPERSAND ]
-## san_rvalue -> Identifier . LPARENT loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
-##
-## The known suffix of the stack is as follows:
-## Identifier
-##
-
-Expected "<binary operator>"
-
-san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT XOR
-##
-## Ends in an error in state: 47.
-##
-## san_rvalue -> Identifier LPARENT . loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
-##
-## The known suffix of the stack is as follows:
-## Identifier LPARENT
-##
-
-Expected ")" or "<atom>"
-
-san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT FALSE XOR
-##
-## Ends in an error in state: 51.
-##
-## separated_nonempty_list(COMMA,located(atom)) -> atom . [ RPARENT ]
-## separated_nonempty_list(COMMA,located(atom)) -> atom . COMMA separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
-##
-## The known suffix of the stack is as follows:
-## atom
-##
-
-Expected ")" or ","
-
-san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier LPARENT FALSE COMMA XOR
-##
-## Ends in an error in state: 52.
-##
-## separated_nonempty_list(COMMA,located(atom)) -> atom COMMA . separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
-##
-## The known suffix of the stack is as follows:
-## atom COMMA
-##
-
-Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD XOR
 ##
@@ -766,3 +704,63 @@ san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL String_lit XOR
 
 Expected "external", "def" or "<eof>"
 
+san_module: XOR
+##
+## Ends in an error in state: 0.
+##
+## san_module' -> . san_module [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label XOR
+##
+## Ends in an error in state: 43.
+##
+## san_rvalue -> Label . LPARENT loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
+##
+## The known suffix of the stack is as follows:
+## Label
+##
+
+Expected "("
+
+san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT XOR
+##
+## Ends in an error in state: 44.
+##
+## san_rvalue -> Label LPARENT . loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
+##
+## The known suffix of the stack is as follows:
+## Label LPARENT
+##
+
+Expected "(" or "<atom>"
+
+san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT FALSE XOR
+##
+## Ends in an error in state: 48.
+##
+## separated_nonempty_list(COMMA,located(atom)) -> atom . [ RPARENT ]
+## separated_nonempty_list(COMMA,located(atom)) -> atom . COMMA separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
+##
+## The known suffix of the stack is as follows:
+## atom
+##
+
+Expected ")" or ","
+
+san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT FALSE COMMA XOR
+##
+## Ends in an error in state: 49.
+##
+## separated_nonempty_list(COMMA,located(atom)) -> atom COMMA . separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
+##
+## The known suffix of the stack is as follows:
+## atom COMMA
+##
+
+Expected "<atom>"

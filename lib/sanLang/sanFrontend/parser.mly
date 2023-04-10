@@ -193,7 +193,7 @@ san_rvalue:
             brhs = $3
         }
     }
-    | located(Identifier) delimited(LPARENT, separated_list(COMMA, located(atom)), RPARENT) {
+    | located(Label) delimited(LPARENT, separated_list(COMMA, located(atom)), RPARENT) {
         RVFunctionCall { fn_name = $1; parameters = $2 }
     }
     
