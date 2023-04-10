@@ -220,7 +220,7 @@ Expected "<first statement>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier XOR
 ##
-## Ends in an error in state: 32.
+## Ends in an error in state: 39.
 ##
 ## san_statement -> Identifier . EQUAL san_rvalue SEMICOLON [ RETURN Label Identifier IF END ]
 ##
@@ -232,7 +232,7 @@ Expected "="
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL XOR
 ##
-## Ends in an error in state: 33.
+## Ends in an error in state: 40.
 ##
 ## san_statement -> Identifier EQUAL . san_rvalue SEMICOLON [ RETURN Label Identifier IF END ]
 ##
@@ -244,7 +244,7 @@ Expected "discard", "lateinit", "<identifier>", "-", "!", "true", "false", "<num
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL NOT XOR
 ##
-## Ends in an error in state: 36.
+## Ends in an error in state: 41.
 ##
 ## san_rvalue -> NOT . atom [ SEMICOLON ]
 ##
@@ -256,7 +256,7 @@ Expected "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS XOR
 ##
-## Ends in an error in state: 41.
+## Ends in an error in state: 43.
 ##
 ## san_rvalue -> MINUS . atom [ SEMICOLON ]
 ##
@@ -268,7 +268,7 @@ Expected "true", "false", "<number>", "<string litteral>" or "<identifier>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT XOR
 ##
-## Ends in an error in state: 51.
+## Ends in an error in state: 53.
 ##
 ## san_rvalue -> LATEINIT . COLON san_type [ SEMICOLON ]
 ##
@@ -280,7 +280,7 @@ Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL LATEINIT COLON XOR
 ##
-## Ends in an error in state: 52.
+## Ends in an error in state: 54.
 ##
 ## san_rvalue -> LATEINIT COLON . san_type [ SEMICOLON ]
 ##
@@ -292,7 +292,7 @@ Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD XOR
 ##
-## Ends in an error in state: 54.
+## Ends in an error in state: 56.
 ##
 ## san_rvalue -> DISCARD . COLON san_type [ SEMICOLON ]
 ##
@@ -304,7 +304,7 @@ Expected ": <type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL DISCARD COLON XOR
 ##
-## Ends in an error in state: 55.
+## Ends in an error in state: 57.
 ##
 ## san_rvalue -> DISCARD COLON . san_type [ SEMICOLON ]
 ##
@@ -316,7 +316,7 @@ Expected "<type>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL MINUS FALSE XOR
 ##
-## Ends in an error in state: 57.
+## Ends in an error in state: 59.
 ##
 ## san_statement -> Identifier EQUAL san_rvalue . SEMICOLON [ RETURN Label Identifier IF END ]
 ##
@@ -328,7 +328,7 @@ Expected ";"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL FALSE UNIT
 ##
-## Ends in an error in state: 59.
+## Ends in an error in state: 61.
 ##
 ## san_rvalue -> atom . [ SEMICOLON ]
 ## san_rvalue -> atom . PLUS atom [ SEMICOLON ]
@@ -357,7 +357,7 @@ Expected "<binary operator>" or ";"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier XOR XOR
 ##
-## Ends in an error in state: 60.
+## Ends in an error in state: 62.
 ##
 ## san_rvalue -> atom XOR . atom [ SEMICOLON ]
 ##
@@ -369,7 +369,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUPEQ XOR
 ##
-## Ends in an error in state: 62.
+## Ends in an error in state: 64.
 ##
 ## san_rvalue -> atom SUPEQ . atom [ SEMICOLON ]
 ##
@@ -381,7 +381,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SUP XOR
 ##
-## Ends in an error in state: 64.
+## Ends in an error in state: 66.
 ##
 ## san_rvalue -> atom SUP . atom [ SEMICOLON ]
 ##
@@ -393,7 +393,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHIFTRIGHT XOR
 ##
-## Ends in an error in state: 66.
+## Ends in an error in state: 68.
 ##
 ## san_rvalue -> atom SHIFTRIGHT . atom [ SEMICOLON ]
 ##
@@ -405,7 +405,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SHIFTLEFT XOR
 ##
-## Ends in an error in state: 68.
+## Ends in an error in state: 70.
 ##
 ## san_rvalue -> atom SHIFTLEFT . atom [ SEMICOLON ]
 ##
@@ -417,7 +417,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PLUS XOR
 ##
-## Ends in an error in state: 70.
+## Ends in an error in state: 72.
 ##
 ## san_rvalue -> atom PLUS . atom [ SEMICOLON ]
 ##
@@ -429,7 +429,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier PIPE XOR
 ##
-## Ends in an error in state: 72.
+## Ends in an error in state: 74.
 ##
 ## san_rvalue -> atom PIPE . atom [ SEMICOLON ]
 ##
@@ -441,7 +441,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier OR XOR
 ##
-## Ends in an error in state: 74.
+## Ends in an error in state: 76.
 ##
 ## san_rvalue -> atom OR . atom [ SEMICOLON ]
 ##
@@ -453,7 +453,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MULT XOR
 ##
-## Ends in an error in state: 76.
+## Ends in an error in state: 78.
 ##
 ## san_rvalue -> atom MULT . atom [ SEMICOLON ]
 ##
@@ -465,7 +465,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier MINUS XOR
 ##
-## Ends in an error in state: 78.
+## Ends in an error in state: 80.
 ##
 ## san_rvalue -> atom MINUS . atom [ SEMICOLON ]
 ##
@@ -477,7 +477,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INFEQ XOR
 ##
-## Ends in an error in state: 80.
+## Ends in an error in state: 82.
 ##
 ## san_rvalue -> atom INFEQ . atom [ SEMICOLON ]
 ##
@@ -489,7 +489,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier INF XOR
 ##
-## Ends in an error in state: 82.
+## Ends in an error in state: 84.
 ##
 ## san_rvalue -> atom INF . atom [ SEMICOLON ]
 ##
@@ -501,7 +501,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DOUBLEQUAL XOR
 ##
-## Ends in an error in state: 84.
+## Ends in an error in state: 86.
 ##
 ## san_rvalue -> atom DOUBLEQUAL . atom [ SEMICOLON ]
 ##
@@ -513,7 +513,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIV XOR
 ##
-## Ends in an error in state: 86.
+## Ends in an error in state: 88.
 ##
 ## san_rvalue -> atom DIV . atom [ SEMICOLON ]
 ##
@@ -525,7 +525,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier DIF XOR
 ##
-## Ends in an error in state: 88.
+## Ends in an error in state: 90.
 ##
 ## san_rvalue -> atom DIF . atom [ SEMICOLON ]
 ##
@@ -537,7 +537,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AND XOR
 ##
-## Ends in an error in state: 90.
+## Ends in an error in state: 92.
 ##
 ## san_rvalue -> atom AND . atom [ SEMICOLON ]
 ##
@@ -549,7 +549,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier AMPERSAND XOR
 ##
-## Ends in an error in state: 92.
+## Ends in an error in state: 94.
 ##
 ## san_rvalue -> atom AMPERSAND . atom [ SEMICOLON ]
 ##
@@ -561,7 +561,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON RETURN FALSE XOR
 ##
-## Ends in an error in state: 94.
+## Ends in an error in state: 102.
 ##
 ## san_function -> DEF Label LPARENT loption(separated_nonempty_list(COMMA,__anonymous_0)) RPARENT san_type COLON starting_basic_block . list(san_basic_block) END [ EXTERNAL EOF DEF ]
 ##
@@ -573,9 +573,10 @@ Expected "end" or "<label>:"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label XOR
 ##
-## Ends in an error in state: 95.
+## Ends in an error in state: 103.
 ##
 ## san_basic_block -> Label . COLON nonempty_list(san_statement) option(san_ending) [ Label END ]
+## san_basic_block -> Label . COLON san_ending [ Label END ]
 ##
 ## The known suffix of the stack is as follows:
 ## Label
@@ -585,9 +586,10 @@ Expected ":"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label COLON XOR
 ##
-## Ends in an error in state: 96.
+## Ends in an error in state: 104.
 ##
 ## san_basic_block -> Label COLON . nonempty_list(san_statement) option(san_ending) [ Label END ]
+## san_basic_block -> Label COLON . san_ending [ Label END ]
 ##
 ## The known suffix of the stack is as follows:
 ## Label COLON
@@ -597,7 +599,7 @@ Expected "<identifier> = ..."
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON XOR
 ##
-## Ends in an error in state: 97.
+## Ends in an error in state: 105.
 ##
 ## nonempty_list(san_statement) -> san_statement . [ RETURN Label IF END ]
 ## nonempty_list(san_statement) -> san_statement . nonempty_list(san_statement) [ RETURN Label IF END ]
@@ -610,7 +612,7 @@ Expected "return", "if" or "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON RETURN XOR
 ##
-## Ends in an error in state: 100.
+## Ends in an error in state: 32.
 ##
 ## san_ending -> RETURN . atom [ Label END ]
 ##
@@ -622,7 +624,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF XOR
 ##
-## Ends in an error in state: 102.
+## Ends in an error in state: 96.
 ##
 ## san_ending -> IF . atom GOTO Label GOTO Label [ Label END ]
 ##
@@ -634,7 +636,7 @@ Expected "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE XOR
 ##
-## Ends in an error in state: 103.
+## Ends in an error in state: 97.
 ##
 ## san_ending -> IF atom . GOTO Label GOTO Label [ Label END ]
 ##
@@ -646,7 +648,7 @@ Expected "goto"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO XOR
 ##
-## Ends in an error in state: 104.
+## Ends in an error in state: 98.
 ##
 ## san_ending -> IF atom GOTO . Label GOTO Label [ Label END ]
 ##
@@ -658,7 +660,7 @@ Expected "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO Label XOR
 ##
-## Ends in an error in state: 105.
+## Ends in an error in state: 99.
 ##
 ## san_ending -> IF atom GOTO Label . GOTO Label [ Label END ]
 ##
@@ -670,7 +672,7 @@ Expected "goto"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON IF FALSE GOTO Label GOTO XOR
 ##
-## Ends in an error in state: 106.
+## Ends in an error in state: 100.
 ##
 ## san_ending -> IF atom GOTO Label GOTO . Label [ Label END ]
 ##
@@ -682,7 +684,7 @@ Expected "<label>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Identifier SEMICOLON Label COLON Identifier EQUAL Identifier SEMICOLON RETURN FALSE XOR
 ##
-## Ends in an error in state: 110.
+## Ends in an error in state: 111.
 ##
 ## list(san_basic_block) -> san_basic_block . list(san_basic_block) [ END ]
 ##
@@ -694,7 +696,7 @@ Expected "end" or "<identifier> = ..."
 
 san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL String_lit XOR
 ##
-## Ends in an error in state: 116.
+## Ends in an error in state: 118.
 ##
 ## list(san_node) -> san_node . list(san_node) [ EOF ]
 ##
@@ -704,21 +706,9 @@ san_module: EXTERNAL Label LPARENT RPARENT BOOL EQUAL String_lit XOR
 
 Expected "external", "def" or "<eof>"
 
-san_module: XOR
-##
-## Ends in an error in state: 0.
-##
-## san_module' -> . san_module [ # ]
-##
-## The known suffix of the stack is as follows:
-##
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label XOR
 ##
-## Ends in an error in state: 43.
+## Ends in an error in state: 45.
 ##
 ## san_rvalue -> Label . LPARENT loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
 ##
@@ -730,7 +720,7 @@ Expected "("
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT XOR
 ##
-## Ends in an error in state: 44.
+## Ends in an error in state: 46.
 ##
 ## san_rvalue -> Label LPARENT . loption(separated_nonempty_list(COMMA,located(atom))) RPARENT [ SEMICOLON ]
 ##
@@ -742,7 +732,7 @@ Expected "(" or "<atom>"
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT FALSE XOR
 ##
-## Ends in an error in state: 48.
+## Ends in an error in state: 50.
 ##
 ## separated_nonempty_list(COMMA,located(atom)) -> atom . [ RPARENT ]
 ## separated_nonempty_list(COMMA,located(atom)) -> atom . COMMA separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
@@ -755,7 +745,7 @@ Expected ")" or ","
 
 san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT FALSE COMMA XOR
 ##
-## Ends in an error in state: 49.
+## Ends in an error in state: 51.
 ##
 ## separated_nonempty_list(COMMA,located(atom)) -> atom COMMA . separated_nonempty_list(COMMA,located(atom)) [ RPARENT ]
 ##
@@ -764,3 +754,15 @@ san_module: DEF Label LPARENT RPARENT BOOL COLON Identifier EQUAL Label LPARENT 
 ##
 
 Expected "<atom>"
+
+san_module: XOR
+##
+## Ends in an error in state: 0.
+##
+## san_module' -> . san_module [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+Expected "def" or "external"

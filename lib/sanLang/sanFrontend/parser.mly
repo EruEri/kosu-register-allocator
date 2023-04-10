@@ -214,8 +214,16 @@ san_basic_block:
             ending = $4
         }
     }
+    | located(Label) COLON san_ending {
+        {
+            label = $1;
+            statements = [];
+            ending = Some $3
+        }
+    }
 starting_basic_block:
     | nonempty_list(san_statement) option(san_ending) { ($1, $2) }
+    | san_ending { [], Some $1 }
 
 san_function:
     | DEF label=located(Label) 
