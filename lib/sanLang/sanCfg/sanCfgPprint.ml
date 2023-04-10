@@ -142,8 +142,8 @@ let string_of_dot_graph ~out graph =
   let () = Printf.fprintf out "\n\t%s" (
     links |> List.map (fun (name, link_to) -> 
       link_to |> List.map (fun link -> 
-        sprintf "\"%s\" -> \"%s\"" name link
-    ) |> String.concat ";\n\t"
+        sprintf "\"%s\" -- \"%s\";" name link
+    ) |> String.concat "\n\t"
   ) |> String.concat "\n\t"
   ) in
   let () = Printf.fprintf out "\n\n}" in
