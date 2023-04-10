@@ -101,3 +101,6 @@ let of_san_node san_module = function
       return_type = return_type.value;
       san_basic_blocks = of_san_basic_blocks san_module env san_basic_blocks
      }
+
+let of_san_module san_module = 
+  san_module |> List.map (of_san_node san_module)

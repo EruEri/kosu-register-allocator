@@ -20,5 +20,5 @@
  (name sanTyped)
  (enabled_if
   (= %{profile} san))
- (modules sanTyAst sanTyConv)
+ (modules sanTyAst sanTyConv sanTyped)
  (libraries sanFrontend))

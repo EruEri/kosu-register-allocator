@@ -15,3 +15,7 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
+
+module SanTyAst = SanTyAst
+
+let of_san_module = SanTyConv.of_san_module

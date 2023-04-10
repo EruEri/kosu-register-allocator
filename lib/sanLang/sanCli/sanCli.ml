@@ -17,6 +17,7 @@
 
 open Cmdliner
 
+let () = SanFrontend.register_san_error ()
 
 type cmd = {
   file: string
@@ -65,22 +66,12 @@ let san run =
   let info = Cmd.info ~doc:san_doc ~man:san_man ~version name in
   Cmd.v info (cmd_term run)
 
-
-let san_module_parse file = 
-  let san_module_res = In_channel.with_open_bin file (fun ic -> 
-    let lexbuf = Lexing.from_channel ic in
-    SanParser.parse lexbuf (Parser.Incremental.san_module lexbuf.lex_curr_p)
-  ) in
-  let san_modules = match san_module_res with
-  | Ok san_module -> SanValidation.validate file san_module
-  | Error error -> raise @@ SanError.File_Lexer_Error (file, error) in
-  san_modules
-
 let run cmd = 
-  let () = SanPprintErr.register_san_error () in
+  
   let { file } = cmd in
-  let san_module = san_module_parse file in
-  let () = ignore san_module in
+  let san_module = SanFrontend.san_module_parse file in
+  let ty_san_module = SanTyped.of_san_module san_module in
+  let () = ignore ty_san_module in
   ()
 
 let eval () = run |> san |> Cmd.eval ~catch:true
