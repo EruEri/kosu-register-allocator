@@ -17,6 +17,17 @@
 
 open Cmdliner
 
+module CmdError = struct
+  type t = 
+  | No_function of string
+
+  exception CdmError of t
+
+  let string_of_cmd_erorr = function
+  | No_function s -> Printf.sprintf "No function \"%s\" was defined" s
+  
+end
+
 module Cfg_Command = struct
 
   type cfg_type = 
@@ -106,6 +117,20 @@ module Cfg_Command = struct
 
   let cfg_main cmd = 
     let { format; colored; cfg_type; variable_infer; fn_name; file } = cmd in
+    let typed_san_module = SanTyped.of_file file in
+    let typed_san_module = fn_name |> Option.map (fun s -> 
+      typed_san_module |> List.filter (fun node -> 
+        let open SanTyped.SanTyAst in
+        match node with
+        | TyDeclaration {fn_name; _} | TyExternal {fn_name; } -> fn_name = s
+      )
+    ) |> Option.value ~default:typed_san_module in
+    let filtered_san_module = typed_san_module |> List.filter_map (
+      let open SanTyped.SanTyAst in
+      function 
+      | TyDeclaration fn -> Some fn
+      | TyExternal _ -> None
+    ) in
     ()
 
   let cfg = 

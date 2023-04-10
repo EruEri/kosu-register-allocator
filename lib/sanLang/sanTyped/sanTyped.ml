@@ -18,4 +18,8 @@
 
 module SanTyAst = SanTyAst
 
+
 let of_san_module = SanTyConv.of_san_module
+
+let of_file file =
+  file |> SanFrontend.san_module_parse |> of_san_module

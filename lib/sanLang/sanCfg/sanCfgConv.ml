@@ -46,7 +46,7 @@ let cfg_block_of_san_block ~(next_block: ty_san_basic_block option) {label; stat
   create_basic_block ~label ~cfg_statements ~followed_by ~ending:cfg_ending
 
 
-let of_san_tyfunction san_tyfunction = 
+let basic_of_san_tyfunction san_tyfunction = 
   let rec make_blocks blocks = match blocks with
   | [] -> []
   | t::[] -> [cfg_block_of_san_block ~next_block:None t]
@@ -58,3 +58,15 @@ let of_san_tyfunction san_tyfunction =
     ~parameters:san_tyfunction.parameters
     ~locals_vars:san_tyfunction.locals
     (make_blocks san_tyfunction.san_basic_blocks)
+
+let detail_of_san_tyfunction san_tyfunction = 
+  let cfg = basic_of_san_tyfunction san_tyfunction in
+  Detail.of_cfg cfg
+
+let liveness_of_san_tyfunction san_tyfunction = 
+  let details = detail_of_san_tyfunction san_tyfunction in
+  Liveness.of_cfg_details details ~delete_useless_stmt:false
+
+let inference_graph_san_tyfunction san_tyfunction = 
+  let liveness = liveness_of_san_tyfunction san_tyfunction in
+  Inference_Graph.infer liveness
