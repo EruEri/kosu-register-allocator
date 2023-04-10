@@ -35,7 +35,29 @@ let rec of_san_basic_block san_module ~acc env ({label; statements; ending} as b
         | RVExpr atom -> 
           let atom_type = typeof_atom san_module env atom in
           TyRVExpr (typed_atom atom_type atom.value)
-        | _ -> failwith "" 
+        | RVUnary {unop; atom} ->
+          let atom_type = typeof_atom san_module env atom in 
+          TYRVUnary {unop; ty_atom = typed_atom atom_type atom.value}
+        | RVBinary {binop; blhs; brhs} ->
+          let latom_type = typeof_atom san_module env blhs in
+          let ratom_type = typeof_atom san_module env brhs in
+          TYRVBinary {
+            binop;
+            tylhs = typed_atom latom_type blhs.value;
+            tyrhs = typed_atom ratom_type brhs.value
+          }
+        | RVFunctionCall {fn_name; parameters} ->
+          TyRVFunctionCall {
+            fn_name = fn_name.value;
+            parameters = parameters |> List.map (fun atom_loc ->
+              let atom_type = typeof_atom san_module env atom_loc in 
+              typed_atom atom_type atom_loc.value
+            )
+          }
+        | RVLater san_type -> 
+          TYRVLater san_type.value
+        | RVDiscard san_type ->
+          TyRVDiscard san_type.value
       in
       let exented = 
       TySSDeclaration (s.value, typed_rvalue san_rtype san_rvalue)::acc in

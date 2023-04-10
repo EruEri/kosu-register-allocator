@@ -60,4 +60,4 @@
  (enabled_if
   (= %{profile} san))
  (modules lexer parser sanAst sanCli sanParser sanError sanPosition sanTypechecker sanValidation sanHelper sanEnv sanPprintErr sanPprint sanParserMessages)
- (libraries menhirLib cmdLiner))
+ (libraries menhirLib cmdliner))
