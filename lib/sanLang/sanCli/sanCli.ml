@@ -41,12 +41,12 @@ module Cfg_Command = struct
     enum |> List.map (fun (elt, _) -> f elt) |> String.concat splitter
 
   let cfg_type_enum = [
-    ("basic", Basic); ("detail", Basic); ("liveness", Liveness )
+    ("basic", Basic); ("detail", Detail); ("liveness", Liveness )
   ]
 
   let format_term = 
     Arg.(
-      value & opt (some string) None & info ~doc:"invoke the $(b,dot) command and generate graph with $(opt) image format" ["format"] 
+      value & opt (some string) None & info ~docv:"format" ~doc:"invoke the $(b,dot) command and generate graph with $(opt) image format" ["format"] 
     )
 
   let colored_term = 
@@ -61,12 +61,12 @@ module Cfg_Command = struct
     
   let function_name_term = 
     Arg.(
-      value & opt (some string) None & info ~doc:"Generate graph for a the $(opt) function" ["f"; "function"]
+      value & opt (some string) None & info ~doc:"Generate graph for a the $(opt) function" ~docv:"function_name" ["f"; "function"]
     )
 
   let cfg_type_term =
     Arg.(
-      value & opt (enum cfg_type_enum) Detail & info ~docv:(string_of_enum cfg_type_enum) ["cfg"]
+      value & opt (enum cfg_type_enum) Detail & info ~docv:(string_of_enum cfg_type_enum) ~doc:"Precise which iteration of the cfg should be printed" ["cfg"]
     )
 
     let file_term = 
@@ -89,9 +89,20 @@ module Cfg_Command = struct
       $ file_term
     )
 
-  let cfg_doc = "Dump san functions representation"
+  let cfg_doc = "Visualise control flow graphs and inference graphs"
 
-  let cfg_man = []
+  let cfg_man = [
+    `S Manpage.s_description;
+    `P 
+      "san-cfg allows you to visual control flow graphs (cfg) and variable inference graph";
+    `P "san-cfg relies heavily on the $(b,dot) language and the $(b,graphviz) library";  
+    `S Manpage.s_see_also;
+    `Noblank;
+    `P "$(b,dot)(1)";
+    `Noblank;
+    `P "Graphviz:  https://graphviz.org";
+    `Noblank;
+  ]
 
   let cfg_main cmd = 
     let { format; colored; cfg_type; variable_infer; fn_name; file } = cmd in
