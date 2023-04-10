@@ -20,9 +20,7 @@ module SanTypechecker = SanTypechecker
 module SanPosition = SanPosition
 module SanAst = SanAst
 
-module SanPprint = struct
-  let string_of_san_type = SanPprint.string_of_san_type
-end
+module SanPprint = SanPprint
 
 let register_san_error = SanPprintErr.register_san_error
 

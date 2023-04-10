@@ -22,3 +22,26 @@ let string_of_san_type = function
 | Boolean -> "bool"
 | Unit -> "unit"
 | Stringl -> "stringl"
+
+let symbole_of_unary unary =
+  match unary with TacNot -> "not" | TacUminus -> "(-.)"
+
+let symbole_of_binary binary =
+  match binary with
+  | TacSelf TacAdd -> "+"
+  | TacSelf TacMinus -> "-"
+  | TacSelf TacMult -> "*"
+  | TacSelf TacDiv -> "/"
+  | TacSelf TacBitwiseAnd -> "&"
+  | TacSelf TacBitwiseOr -> "|"
+  | TacSelf TacBitwiseXor -> "^"
+  | TacSelf TacShiftLeft -> "<<"
+  | TacSelf TacShiftRight -> ">>"
+  | TacBool TacAnd -> "&&"
+  | TacBool TacOr -> "||"
+  | TacBool TacSup -> ">"
+  | TacBool TacSupEq -> ">="
+  | TacBool TacInf -> "<"
+  | TacBool TacInfEq -> "<="
+  | TacBool TacEqual -> "=="
+  | TacBool TacDiff -> "!="

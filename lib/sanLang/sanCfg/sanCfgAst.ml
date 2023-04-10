@@ -59,4 +59,13 @@ module Cfg_Sig = struct
   | _ -> None
 end
 
-module SanRegisterAllocator = Kosu_register_allocator.Register_allocator.Cgf.Make(Cfg_Sig)
+module CfgPprint = struct
+  type variable = Cfg_Sig.variable
+  type tac_typed_expression = Cfg_Sig.tac_typed_expression
+  type tac_typed_rvalue = Cfg_Sig.tac_typed_rvalue
+
+  let string_of_variable = Cfg_Sig.repr
+  let string_of_tac_typed_expression = SanTyped.SanTyPprint.string_of_typed_atom
+  let string_of_tac_typed_rvalue = SanTyped.SanTyPprint.string_of_typed_san_rvalue
+end
+module SanRegisterAllocator = Kosu_register_allocator.Register_allocator.Cgf.MakePprint(Cfg_Sig)(CfgPprint)

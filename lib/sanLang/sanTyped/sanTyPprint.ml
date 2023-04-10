@@ -15,41 +15,34 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-open SanCfgAst.SanRegisterAllocator
-open SanCfgAst.SanRegisterAllocator.Basic
-open SanCfgAst.SanRegisterAllocator.Detail
-open SanCfgAst.SanRegisterAllocator.Pprint
-open SanTyped.SanTyPprint
-module StringSet = Set.Make(String)
+open SanFrontend.SanAst
+open SanFrontend.SanPprint
+open SanTyAst
+open Printf
 
-type dot_digraph_node = {
-  name: string;
-  elements: string list;
-  ending: string option;
-  link_to: string list;
-  din_vars: TypedIdentifierSet.t;
-  dout_vars: TypedIdentifierSet.t;
-}
+let string_of_atom = function
+| Variable v -> v
+| Int i -> sprintf "%nd" i
+| Boolean b -> string_of_bool b
+| String s -> sprintf "\"%s\"" s
 
-type dot_digrah = {
-  entry: string;
-  nodes: dot_digraph_node list
-}
+let string_of_typed_atom tyatom = 
+  sprintf "%s : %s" (string_of_atom tyatom.atom) (string_of_san_type tyatom.atom_type)
 
-let diagraph_node_of_basic_block ~(func : 'a -> string) ?(in_vars = TypedIdentifierSet.empty) ?(out_vars = TypedIdentifierSet.empty) (bb: ('a, 'b) Basic.basic_block) = 
-  {
-    name = bb.label;
-    elements = List.map func bb.cfg_statements;
-    ending = bb.ending |> Option.map (string_of_basic_block_end);
-    link_to = StringSet.elements bb.followed_by;
-    din_vars = in_vars;
-    dout_vars = out_vars;
-  }
+let string_of_ty_san_rvlue = function
+| TyRVExpr typed_atom -> string_of_typed_atom typed_atom
+| TYRVUnary {unop; ty_atom} -> 
+  sprintf "%s %s" (symbole_of_unary unop) (string_of_atom ty_atom.atom)
+| TYRVBinary {binop; tylhs; tyrhs} -> 
+  sprintf "%s %s %s" (string_of_atom tylhs.atom) (symbole_of_binary binop) (string_of_atom tyrhs.atom)
+| TyRVFunctionCall {fn_name; parameters} ->
+  sprintf "%s(%s)" fn_name (parameters |> List.map (fun tyatom -> string_of_atom tyatom.atom) |> String.concat ", ")
+| TyRVDiscard ty -> sprintf "discard : %s" (string_of_san_type ty)
+| TYRVLater ty -> sprintf "lateinit : %s" (string_of_san_type ty)
 
-let dot_diagrah_of_cfg_liveness (cfg:  Liveness.cfg_liveness_detail) = 
-  {
-    entry = cfg.entry_block;
-    nodes = cfg.blocks_liveness_details |> BasicBlockMap.bindings |> List.map (fun (_, bbl) ->
-      diagraph_node_of_basic_block ~in_vars:bbl.in_vars ~out_vars:bbl.out_vars ~func:string_of_cfg_liveness_statement {bbl.basic_block with ending = fst bbl.basic_block.ending}
-    )
-  }
+let string_of_typed_san_rvalue rvalue =
+  sprintf "%s : %s" (string_of_san_type rvalue.san_type)  (string_of_ty_san_rvlue rvalue.san_rvalue) 
+
+let string_of_statememnt = function
+| TySSDeclaration (s, rvalue) ->
+  sprintf "%s : %s = %s" s (string_of_san_type rvalue.san_type) (string_of_ty_san_rvlue rvalue.san_rvalue)

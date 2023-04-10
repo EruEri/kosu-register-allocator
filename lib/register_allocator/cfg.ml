@@ -39,6 +39,16 @@ module type Cfg_Sig = sig
   val variables_as_parameter : tac_typed_rvalue -> (variable * int) list option
 end
 
+module type Cfg_Pprint_Sig = sig
+  type variable
+  type tac_typed_rvalue
+  type tac_typed_expression
+  
+  val string_of_variable: variable -> string
+  val string_of_tac_typed_rvalue: tac_typed_rvalue -> string
+  val string_of_tac_typed_expression: tac_typed_expression -> string
+end
+
 module type ABI = sig
   type register
   type any
@@ -692,4 +702,47 @@ module Make (CfgS : Cfg_Sig) = struct
       in
       ColoredGraph.color_graph available_color colored_graph
   end
+end
+
+module MakePprint(CfgS: Cfg_Sig)(Pp: Cfg_Pprint_Sig with 
+  type variable = CfgS.variable and 
+  type tac_typed_rvalue = CfgS.tac_typed_rvalue  and
+  type tac_typed_expression = CfgS.tac_typed_expression
+) = struct
+  module Cfg = Make(CfgS)
+  include Cfg
+
+  module Pprint = struct
+    open Printf
+    open Pp
+    
+    let string_of_typed_indentifier_set set = 
+      set |> TypedIdentifierSet.elements |> List.map CfgS.repr |> String.concat ", "
+
+    let string_of_cfg_statement = function
+      | CFG_STacDeclaration {identifier; trvalue} ->
+        sprintf "%s = %s" identifier (string_of_tac_typed_rvalue trvalue)
+      | CFG_STDerefAffectation {identifier; trvalue} ->
+        sprintf "*%s <- %s" identifier (string_of_tac_typed_rvalue trvalue)
+      | CFG_STacModification {identifier; trvalue} ->
+        sprintf "%s <- %s" identifier (string_of_tac_typed_rvalue trvalue)
+
+    let string_of_cfg_liveness_statement (cfgl_statement: Liveness.cfg_liveness_statement) = 
+      Printf.sprintf "%s [%s]" 
+      (string_of_cfg_statement cfgl_statement.cfg_statement)
+      (cfgl_statement.liveness_info 
+        |> Liveness.LivenessInfo.to_list 
+        |> List.map (fun (typed_id, bool) -> Printf.sprintf "<%s => %s>" (CfgS.repr typed_id) (if bool then "alive" else "dead"))
+        |> String.concat ", "
+      )
+
+      let string_of_basic_block_end = function
+        | Bbe_return tte -> Printf.sprintf "return %s" 
+          (string_of_tac_typed_expression tte)
+        | BBe_if {condition; if_label; else_label} -> Printf.sprintf "if %s goto %s\n\tgoto %s" 
+          (string_of_tac_typed_expression condition)
+          if_label
+          else_label
+  end
+  
 end

@@ -17,6 +17,7 @@
 
 
 module SanTyAst = SanTyAst
+module SanTyPprint = SanTyPprint
 
 
 let of_san_module = SanTyConv.of_san_module
