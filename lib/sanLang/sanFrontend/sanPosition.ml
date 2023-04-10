@@ -36,3 +36,7 @@ let map f location = { location with value = f location.value }
 let map_use f location = { value = f location; position = location.position }
 
 let unit_located loc = loc |> map (fun _ -> ())
+
+let value loc = loc.value
+
+let assoc_value (a, b) = a.value, b.value

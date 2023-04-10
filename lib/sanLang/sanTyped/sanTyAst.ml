@@ -76,6 +76,6 @@ type tysan_node =
       signature : (san_type list * san_type);
       cname : string option;
     }
-  | Declaration of ty_san_function
+  | TyDeclaration of ty_san_function
 
 type tysan_module = tysan_node list
