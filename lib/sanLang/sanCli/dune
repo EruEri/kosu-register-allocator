@@ -20,4 +20,4 @@
  (enabled_if
   (= %{profile} san))
   (modules sanCli)
- (libraries kosu_register_allocator cmdliner sanFrontend sanTyped))
+ (libraries cmdliner sanFrontend sanTyped sanCfg))

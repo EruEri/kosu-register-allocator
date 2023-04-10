@@ -19,5 +19,5 @@
  (name sanCfg)
  (enabled_if
   (= %{profile} san))
-  (modules sanCfg sanCfgConv sanCfgAst)
+  (modules sanCfg sanCfgConv sanCfgAst sanCfgPprint)
  (libraries kosu_register_allocator sanTyped sanFrontend))

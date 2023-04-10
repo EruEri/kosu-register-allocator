@@ -14,10 +14,3 @@
 (* If not, see <http://www.gnu.org/licenses/>.                                                *)
 (*                                                                                            *)
 (**********************************************************************************************)
-
-
-let () = SanLang.Frontend.register_san_error ()
-
-let () = 
-  let code = SanLang.Cli.eval () in
-  exit code
