@@ -20,6 +20,7 @@ open SanFrontend.SanPprint
 
 module Cfg_Sig = struct
   type variable = (string * san_type)
+  type t = variable
   type tac_typed_expression = typed_atom
   type tac_typed_rvalue = typed_san_rvalue
 

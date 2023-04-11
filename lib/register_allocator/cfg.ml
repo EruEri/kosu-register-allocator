@@ -22,10 +22,9 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module StringSet = Set.Make (String)
-
-module type Cfg_Sig = sig
+module type CfgS = sig
   type variable
+  type t = variable
   type tac_typed_rvalue
   type tac_typed_expression
 
@@ -39,7 +38,7 @@ module type Cfg_Sig = sig
   val variables_as_parameter : tac_typed_rvalue -> (variable * int) list option
 end
 
-module type Cfg_Pprint_Sig = sig
+module type CfgPprintSig = sig
   type variable
   type tac_typed_rvalue
   type tac_typed_expression
@@ -74,18 +73,170 @@ end
 
 module type ColoredType = Graph.ColoredType
 
-module Make (CfgS : Cfg_Sig) = struct
-  module TypedIdentifierSig = struct
+module type S = sig
+
+  type variable
+  type tac_typed_rvalue
+  type tac_typed_expression
+
+  module VariableSig : sig
+      type t = variable
+
+      val compare: t -> t -> int
+  end
+
+  module StringSet : sig
+      include module type of Set.Make(String)
+  end
+
+
+  module TypedIdentifierSet : sig
+      include Set.S with type elt = variable
+  end
+
+  module BasicBlockMap: sig
+      include Map.S with type key = String.t 
+  end
+
+  type cfg_statement =
+  | CFG_STacDeclaration of {
+      identifier : string;
+      trvalue : tac_typed_rvalue;
+    }
+  | CFG_STacModification of {
+      identifier : string;
+      trvalue : tac_typed_rvalue;
+    }
+  | CFG_STDerefAffectation of {
+      identifier : string;
+      trvalue : tac_typed_rvalue;
+    }
+
+    type bbe_if = {
+      condition : tac_typed_expression;
+      if_label : string;
+      else_label : string;
+    }
+
+    type basic_block_end =
+    | BBe_if of bbe_if
+    | Bbe_return of tac_typed_expression
+
+    module Basic : sig
+      type ('a, 'b) basic_block = {
+          label : string;
+          cfg_statements : 'a list;
+          followed_by : StringSet.t;
+          ending : 'b;
+      }
+
+      type cfg = {
+          entry_block : string;
+          blocks :
+            (cfg_statement, basic_block_end option) basic_block BasicBlockMap.t;
+          parameters : variable list;
+          locals_vars : TypedIdentifierSet.t;
+        }
+
+      val create_basic_block: label:string -> cfg_statements:'a list -> followed_by:string list -> ending:'b -> ('a, 'b) basic_block
+
+      val create_cfg: entry_block:string -> parameters:variable list -> locals_vars:variable list -> (cfg_statement, basic_block_end option) basic_block list -> cfg
+  end
+
+  module Detail : sig
+      type ('a, 'b) basic_block_detail = {
+          basic_block : ('a, 'b) Basic.basic_block;
+          in_vars : TypedIdentifierSet.t;
+          out_vars : TypedIdentifierSet.t;
+      }
+
+      type cfg_detail = {
+          entry_block : string;
+          blocks_details :
+            (cfg_statement, basic_block_end option) basic_block_detail
+            BasicBlockMap.t;
+          parameters : variable list;
+          locals_vars : TypedIdentifierSet.t;
+      }
+
+      val of_cfg: Basic.cfg -> cfg_detail
+  end
+
+  module Liveness : sig
+      module LivenessInfo : sig
+          include LivenessInfo.LivenessInfoS with type elt = variable
+      end
+
+      type cfg_liveness_statement = {
+          cfg_statement : cfg_statement;
+          liveness_info : LivenessInfo.liveness_info;
+      }
+
+      type liveness_ending = basic_block_end option * LivenessInfo.liveness_info
+
+
+  type cfg_liveness_detail = {
+      entry_block : string;
+      blocks_liveness_details :
+        (cfg_liveness_statement, liveness_ending) Detail.basic_block_detail
+        BasicBlockMap.t;
+      parameters : variable list;
+      locals_vars : TypedIdentifierSet.t;
+    }
+
+  val of_cfg_details: delete_useless_stmt:bool -> Detail.cfg_detail -> cfg_liveness_detail
+  end
+
+  module Inference_Graph : sig
+      module IG : sig
+          include module type of Graph.Make(VariableSig)
+      end
+
+      val infer: Liveness.cfg_liveness_detail -> IG.graph
+  end
+
+  module GreedyColoring (Color : ColoredType) :
+      sig
+        module ColoredGraph : sig
+          include module type of Graph.ColoredMake(VariableSig)(Color)
+        end
+
+        val coloration: parameters:(variable * Color.t) list -> available_color:Color.t list -> Liveness.cfg_liveness_detail -> ColoredGraph.colored_graph
+      end
+
+end
+
+module type SP = sig
+  include S
+
+  module Pprint: sig
+    val string_of_typed_indentifier_set: TypedIdentifierSet.t -> string 
+
+    val string_of_cfg_statement: cfg_statement -> string
+
+    val string_of_cfg_liveness_statement: Liveness.cfg_liveness_statement -> string
+
+    val string_of_basic_block_end: basic_block_end -> string
+  end
+end
+
+module Make (CfgS : CfgS): S = struct
+
+  type variable = CfgS.variable
+  type tac_typed_expression = CfgS.tac_typed_expression
+  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+
+
+  module VariableSig = struct
     type t = CfgS.variable
 
     let compare = CfgS.compare
   end
 
-  module TypedIdentifierSet = Set.Make (TypedIdentifierSig)
+  module StringSet = Set.Make (String)
+  module TypedIdentifierSet = Set.Make (VariableSig)
   module BasicBlockMap = Map.Make (String)
-  module Constraint = Constraint.Make (TypedIdentifierSig)
-
-  type variable = TypedIdentifierSet.elt
+  module Constraint = Constraint.Make (VariableSig)
 
   type cfg_statement =
     | CFG_STacDeclaration of {
@@ -294,7 +445,7 @@ module Make (CfgS : Cfg_Sig) = struct
   end
 
   module Liveness = struct
-    module LivenessInfo = LivenessInfo.Make (TypedIdentifierSig)
+    module LivenessInfo = LivenessInfo.Make (VariableSig)
 
     type cfg_liveness_statement = {
       cfg_statement : cfg_statement;
@@ -608,7 +759,7 @@ module Make (CfgS : Cfg_Sig) = struct
   end
 
   module Inference_Graph = struct
-    module IG = Graph.Make (TypedIdentifierSig)
+    module IG = Graph.Make (VariableSig)
 
     let infer_acc liveness_info graph =
       let alive_elt = Liveness.LivenessInfo.alive_elements liveness_info in
@@ -616,7 +767,7 @@ module Make (CfgS : Cfg_Sig) = struct
         List.flatten
         @@ Util.combinaison
              (fun lhs rhs ->
-               if TypedIdentifierSig.compare lhs rhs = 0 then None
+               if VariableSig.compare lhs rhs = 0 then None
                else Some (lhs, rhs))
              alive_elt alive_elt
       in
@@ -690,7 +841,7 @@ module Make (CfgS : Cfg_Sig) = struct
   end
 
   module GreedyColoring (Color : ColoredType) = struct
-    module ColoredGraph = Graph.ColoredMake (TypedIdentifierSig) (Color)
+    module ColoredGraph = Graph.ColoredMake (VariableSig) (Color)
 
     let coloration ~(parameters : (TypedIdentifierSet.elt * Color.t) list)
         ~available_color (cfg : Liveness.cfg_liveness_detail) =
@@ -704,7 +855,7 @@ module Make (CfgS : Cfg_Sig) = struct
   end
 end
 
-module MakePprint(CfgS: Cfg_Sig)(Pp: Cfg_Pprint_Sig with 
+module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with 
   type variable = CfgS.variable and 
   type tac_typed_rvalue = CfgS.tac_typed_rvalue  and
   type tac_typed_expression = CfgS.tac_typed_expression
