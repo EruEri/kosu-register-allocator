@@ -68,5 +68,5 @@ module CfgPprint = struct
   let string_of_tac_typed_expression = SanTyped.SanTyPprint.string_of_typed_atom
   let string_of_tac_typed_rvalue = SanTyped.SanTyPprint.string_of_typed_san_rvalue
 end
-module SanRegisterAllocator = Kosu_register_allocator.Register_allocator.Cgf.MakePprint(Cfg_Sig)(CfgPprint)
+module SanRegisterAllocator = KosuRegisterAllocator.MakePprint(Cfg_Sig)(CfgPprint)
 module GreedyColoring = SanRegisterAllocator.GreedyColoring(SanCfgRegister)

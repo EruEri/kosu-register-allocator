@@ -22,5 +22,6 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module Cgf = Cfg
+module Make = Cfg.Make
+module MakePprint = Cfg.MakePprint
 module Graph = Graph
