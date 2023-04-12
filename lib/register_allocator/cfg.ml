@@ -42,7 +42,7 @@ module type CfgPprintSig = sig
   type variable
   type tac_typed_rvalue
   type tac_typed_expression
-  
+
   val string_of_variable: variable -> string
   val string_of_tac_typed_rvalue: tac_typed_rvalue -> string
   val string_of_tac_typed_expression: tac_typed_expression -> string
@@ -73,6 +73,12 @@ end
 
 module type ColoredType = Graph.ColoredType
 
+module type VariableSig = sig
+  type t
+
+  val compare: t -> t -> int
+end
+
 module type S = sig
 
   type variable
@@ -80,18 +86,16 @@ module type S = sig
   type tac_typed_expression
 
   module VariableSig : sig
-      type t = variable
-
-      val compare: t -> t -> int
+    include VariableSig with type t = variable 
   end
 
   module StringSet : sig
-      include module type of Set.Make(String)
+    include module type of Set.Make(String)
   end
 
 
   module TypedIdentifierSet : sig
-      include Set.S with type elt = variable
+    include module type of Set.Make(VariableSig)
   end
 
   module BasicBlockMap: sig
@@ -220,7 +224,11 @@ module type SP = sig
   end
 end
 
-module Make (CfgS : CfgS): S = struct
+module Make (CfgS : CfgS): S 
+  with type variable = CfgS.variable and
+  type tac_typed_expression = CfgS.tac_typed_expression and
+  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+= struct
 
   type variable = CfgS.variable
   type tac_typed_expression = CfgS.tac_typed_expression
@@ -857,9 +865,13 @@ end
 
 module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with 
   type variable = CfgS.variable and 
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue  and
-  type tac_typed_expression = CfgS.tac_typed_expression
-) = struct
+  type tac_typed_expression = CfgS.tac_typed_expression and
+  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+): SP 
+with type variable = CfgS.variable and
+  type tac_typed_expression = CfgS.tac_typed_expression and
+  type tac_typed_rvalue = CfgS.tac_typed_rvalue 
+= struct
   module Cfg = Make(CfgS)
   include Cfg
 

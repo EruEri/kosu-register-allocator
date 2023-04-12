@@ -49,16 +49,21 @@ module type CfgS = sig
 
 module type ColoredType = Graph.ColoredType
 
+module type VariableSig = sig
+    type t
+  
+    val compare: t -> t -> int
+  end
+
 module type S = sig
 
     type variable
     type tac_typed_rvalue
     type tac_typed_expression
 
+    
     module VariableSig : sig
-        type t = variable
-
-        val compare: t -> t -> int
+        include VariableSig with type t = variable 
     end
 
     module StringSet : sig
@@ -67,7 +72,7 @@ module type S = sig
 
 
     module TypedIdentifierSet : sig
-        include Set.S with type elt = variable
+        include module type of Set.Make(VariableSig)
     end
 
     module BasicBlockMap: sig
@@ -198,8 +203,8 @@ end
 
 module Make (CfgS: CfgS) : S with 
     type variable = CfgS.variable and 
-    type tac_typed_rvalue = CfgS.tac_typed_expression and
-    type tac_typed_expression  = CfgS.tac_typed_expression
+    type tac_typed_expression  = CfgS.tac_typed_expression and
+    type tac_typed_rvalue = CfgS.tac_typed_rvalue
 
 module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with 
     type variable = CfgS.variable and 
@@ -209,137 +214,3 @@ module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with
   type variable = CfgS.variable and 
   type tac_typed_expression  = CfgS.tac_typed_expression and
   type tac_typed_rvalue = CfgS.tac_typed_rvalue
-(* module Make (CfgS: CfgS) : S with type variable = CfgS.variable
-
-    module StringSet : sig
-        include module type of Set.Make(String)
-    end
-
-    module TypedIdentifierSet : sig
-        include Set.S with type elt = CfgS.variable
-    end
-
-    module BasicBlockMap: sig
-        include Map.S with type key = String.t 
-    end
-
-    type constraints
-
-    type variable = TypedIdentifierSet.elt
-
-    type cfg_statement =
-      | CFG_STacDeclaration of {
-          identifier : string;
-          trvalue : CfgS.tac_typed_rvalue;
-        }
-      | CFG_STacModification of {
-          identifier : string;
-          trvalue : CfgS.tac_typed_rvalue;
-        }
-      | CFG_STDerefAffectation of {
-          identifier : string;
-          trvalue : CfgS.tac_typed_rvalue;
-        }
-  
-    type bbe_if = {
-      condition : CfgS.tac_typed_expression;
-      if_label : string;
-      else_label : string;
-    }
-
-    type basic_block_end =
-    | BBe_if of bbe_if
-    | Bbe_return of CfgS.tac_typed_expression
-
-    module Basic : sig
-        type ('a, 'b) basic_block = {
-            label : string;
-            cfg_statements : 'a list;
-            followed_by : StringSet.t;
-            ending : 'b;
-        }
-
-        type cfg = {
-            entry_block : string;
-            blocks :
-              (cfg_statement, basic_block_end option) basic_block BasicBlockMap.t;
-            parameters : variable list;
-            locals_vars : TypedIdentifierSet.t;
-          }
-
-        val create_basic_block: label:string -> cfg_statements:'a list -> followed_by:string list -> ending:'b -> ('a, 'b) basic_block
-
-        val create_cfg: entry_block:string -> parameters:variable list -> locals_vars:variable list -> (cfg_statement, basic_block_end option) basic_block list -> cfg
-    end
-
-    module Detail : sig
-        type ('a, 'b) basic_block_detail = {
-            basic_block : ('a, 'b) Basic.basic_block;
-            in_vars : TypedIdentifierSet.t;
-            out_vars : TypedIdentifierSet.t;
-        }
-
-        type cfg_detail = {
-            entry_block : string;
-            blocks_details :
-              (cfg_statement, basic_block_end option) basic_block_detail
-              BasicBlockMap.t;
-            parameters : variable list;
-            locals_vars : TypedIdentifierSet.t;
-        }
-
-        val of_cfg: Basic.cfg -> cfg_detail
-    end
-
-    module Liveness : sig
-        module LivenessInfo : sig
-            include LivenessInfo.LivenessInfoS with type elt = CfgS.variable
-        end
-
-        type cfg_liveness_statement = {
-            cfg_statement : cfg_statement;
-            liveness_info : LivenessInfo.liveness_info;
-        }
-
-        type liveness_ending = basic_block_end option * LivenessInfo.liveness_info
-
-
-    type cfg_liveness_detail = {
-        entry_block : string;
-        blocks_liveness_details :
-          (cfg_liveness_statement, liveness_ending) Detail.basic_block_detail
-          BasicBlockMap.t;
-        parameters : variable list;
-        locals_vars : TypedIdentifierSet.t;
-      }
-
-    val of_cfg_details: delete_useless_stmt:bool -> Detail.cfg_detail -> cfg_liveness_detail
-    end
-
-    module Inference_Graph : sig
-        module IG : sig
-            include module type of Graph.Make(CfgS)
-        end
-
-        val infer: Liveness.cfg_liveness_detail -> IG.graph
-    end
-
-    module type GreedyColoring = functor (Color : ColoredType) -> 
-        sig
-          module ColoredGraph : sig
-            include module type of Graph.ColoredMake(CfgS)(Color)
-          end
-
-          val coloration: parameters:(CfgS.variable * Color.t) list -> available_color:Color.t list -> Liveness.cfg_liveness_detail -> ColoredGraph.colored_graph
-        end
-end
-
-module type MakePprint = functor(CfgS: CfgS) -> functor (Pp: CfgPprintSig with 
-    type variable = CfgS.variable and 
-    type tac_typed_rvalue = CfgS.tac_typed_rvalue  and
-    type tac_typed_expression = CfgS.tac_typed_expression
-) -> sig
-    module Cfg : sig
-        include module type of Make
-    end
-end *)
