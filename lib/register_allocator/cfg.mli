@@ -1,15 +1,47 @@
+(**
+    Cfg functor create multiples types to represent the control flow graph (Cfg) of the program
+
+    {!S.Basic: Basic} contains the type [('a, 'b) basic_block] which represent a sequence of stamement without a jump or goto and 
+      the type [cfg] which represents the control flow graph of a function by containing a set of [('a, 'b) basic_block]
+
+    {!S.Detail: Detail} defines [cfg_detail] which extends [cfg] by adding for each basic_block the input variable and the output variable
+
+    {!S.Liveness: Liveness} extends [cfg_detail] with the type [cfg_liveness] which add for each statement the liveness info of each variable
+
+    {!S.Inference_Graph: Inference_Graph} compute the variable inference graph from the [cfg_liveness]
+
+    {!S.GreedyColoring: GreedyColoring} is a functor which try to color the infered graph with type [color] defined in the functor {!S.ColoredType: ColoredType}.
+    The coloration algorithm used is roughly the Kempe algorithm
+*)
+
+(** Input signature of of the functor {!Make}*)
 module type CfgS = sig
+
+    (** the type of variable *)
     type variable
+
+    (** an alias of variable of compatiblity with other ocaml functor *)
     type t = variable
-    type tac_typed_rvalue
+
+    (** the type of elementary value in a 3 address code language *)
     type tac_typed_expression
-  
+
+    (** the type of "expression" at the right in a 3 address code langauge  *)
+    type tac_typed_rvalue
+
+    (** string representation of [varriable]: Mostly for debug *)
     val repr : variable -> string
+
+    (** compare two variable*)
     val compare : variable -> variable -> int
+
+    (* Create a variable from the lvalue identifier and the [tac_typed_rvalue] *)
     val lvalue_variable : string -> tac_typed_rvalue -> variable
     val lvalue_deref_variable : string -> tac_typed_rvalue -> variable
     val ttrv_identifiers_used : tac_typed_rvalue -> variable list
     val tte_idenfier_used : tac_typed_expression -> variable list
+
+    (** return whenever the rvalue affected a value to the variable *)
     val is_affectation : tac_typed_rvalue -> bool
     val variables_as_parameter : tac_typed_rvalue -> (variable * int) list option
   end
