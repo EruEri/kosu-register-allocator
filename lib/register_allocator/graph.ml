@@ -29,9 +29,7 @@ module type OrderedType = sig
 end
 
 module type ColoredType = sig
-  type color
-  type t = color
-
+  type t 
   val compare : t -> t -> int
 end
 
@@ -112,7 +110,7 @@ module Make (S : OrderedType) = struct
 end
 
 module ColoredMake (S : OrderedType) (Color : ColoredType) = struct
-  type colored_node = { node : S.t; color : Color.color option }
+  type colored_node = { node : S.t; color : Color.t option }
   type egde = { root : S.t; along : S.t }
 
   let compare_opt lhs rhs =
@@ -221,7 +219,7 @@ module ColoredMake (S : OrderedType) (Color : ColoredType) = struct
         | Some color -> ColorSet.add color acc)
       edges ColorSet.empty
 
-  let of_graph ?(precolored = ([] : (S.t * Color.color) list)) (graph : G.graph)
+  let of_graph ?(precolored = ([] : (S.t * Color.t) list)) (graph : G.graph)
       =
     let color_links ~precolored linked =
       linked
