@@ -21,8 +21,8 @@ open SanFrontend.SanPprint
 module Cfg_Sig = struct
   type variable = (string * san_type)
   type t = variable
-  type tac_typed_expression = typed_atom
-  type tac_typed_rvalue = typed_san_rvalue
+  type atom = typed_atom
+  type rvalue = typed_san_rvalue
 
   let repr (v, st) = Printf.sprintf "%s : %s" v (string_of_san_type st)
   let compare = Stdlib.compare
@@ -62,12 +62,12 @@ end
 
 module CfgPprint = struct
   type variable = Cfg_Sig.variable
-  type tac_typed_expression = Cfg_Sig.tac_typed_expression
-  type tac_typed_rvalue = Cfg_Sig.tac_typed_rvalue
+  type atom = Cfg_Sig.atom
+  type rvalue = Cfg_Sig.rvalue
 
   let string_of_variable = Cfg_Sig.repr
-  let string_of_tac_typed_expression = SanTyped.SanTyPprint.string_of_typed_atom
-  let string_of_tac_typed_rvalue = SanTyped.SanTyPprint.string_of_typed_san_rvalue
+  let string_of_atom = SanTyped.SanTyPprint.string_of_typed_atom
+  let string_of_rvalue = SanTyped.SanTyPprint.string_of_typed_san_rvalue
 end
 module SanRegisterAllocator = KosuRegisterAllocator.MakePprint(Cfg_Sig)(CfgPprint)
 module GreedyColoring = SanRegisterAllocator.GreedyColoring(SanCfgRegister)
