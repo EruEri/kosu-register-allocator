@@ -36,6 +36,8 @@
    (run %{bin:menhir} --table %{deps}))))
 
 (rule
+ (enabled_if
+  (= %{profile} san))
  (target new.messages)
  (deps
   (:parser parser.mly))
@@ -57,6 +59,8 @@
    (run menhir %{parser} --base %{parser} --update-errors %{msg}))))
 
 (rule
+ (enabled_if
+  (= %{profile} san))
  (target parser.messages.updated)
  (deps
   (:parser parser.mly)
@@ -76,6 +80,8 @@
     %{updated}))))
 
 (rule
+ (enabled_if
+  (= %{profile} san))
  (targets sanParserMessages.ml)
  (deps sanParser.messages parser.mly)
  (action

@@ -25,27 +25,27 @@
 module type CfgS = sig
   type variable
   type t = variable
-  type tac_typed_rvalue
-  type tac_typed_expression
+  type rvalue
+  type atom
 
   val repr : variable -> string
   val compare : variable -> variable -> int
-  val lvalue_variable : string -> tac_typed_rvalue -> variable
-  val lvalue_deref_variable : string -> tac_typed_rvalue -> variable
-  val ttrv_identifiers_used : tac_typed_rvalue -> variable list
-  val tte_idenfier_used : tac_typed_expression -> variable list
-  val is_affectation : tac_typed_rvalue -> bool
-  val variables_as_parameter : tac_typed_rvalue -> (variable * int) list option
+  val lvalue_variable : string -> rvalue -> variable
+  val lvalue_deref_variable : string -> rvalue -> variable
+  val ttrv_identifiers_used : rvalue -> variable list
+  val tte_idenfier_used : atom -> variable list
+  val is_affectation : rvalue -> bool
+  val variables_as_parameter : rvalue -> (variable * int) list option
 end
 
 module type CfgPprintSig = sig
   type variable
-  type tac_typed_rvalue
-  type tac_typed_expression
+  type rvalue
+  type atom
 
   val string_of_variable: variable -> string
-  val string_of_tac_typed_rvalue: tac_typed_rvalue -> string
-  val string_of_tac_typed_expression: tac_typed_expression -> string
+  val string_of_rvalue: rvalue -> string
+  val string_of_atom: atom -> string
 end
 
 module type ABI = sig
@@ -82,8 +82,9 @@ end
 module type S = sig
 
   type variable
-  type tac_typed_rvalue
-  type tac_typed_expression
+  type rvalue
+  type atom
+  type constraints
 
   module VariableSig : sig
     include VariableSig with type t = variable 
@@ -105,26 +106,26 @@ module type S = sig
   type cfg_statement =
   | CFG_STacDeclaration of {
       identifier : string;
-      trvalue : tac_typed_rvalue;
+      trvalue : rvalue;
     }
   | CFG_STacModification of {
       identifier : string;
-      trvalue : tac_typed_rvalue;
+      trvalue : rvalue;
     }
   | CFG_STDerefAffectation of {
       identifier : string;
-      trvalue : tac_typed_rvalue;
+      trvalue : rvalue;
     }
 
     type bbe_if = {
-      condition : tac_typed_expression;
+      condition : atom;
       if_label : string;
       else_label : string;
     }
 
     type basic_block_end =
     | BBe_if of bbe_if
-    | Bbe_return of tac_typed_expression
+    | Bbe_return of atom
 
     module Basic : sig
       type ('a, 'b) basic_block = {
@@ -226,13 +227,13 @@ end
 
 module Make (CfgS : CfgS): S 
   with type variable = CfgS.variable and
-  type tac_typed_expression = CfgS.tac_typed_expression and
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+  type atom = CfgS.atom and
+  type rvalue = CfgS.rvalue
 = struct
 
   type variable = CfgS.variable
-  type tac_typed_expression = CfgS.tac_typed_expression
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+  type atom = CfgS.atom
+  type rvalue = CfgS.rvalue
 
 
   module VariableSig = struct
@@ -249,26 +250,26 @@ module Make (CfgS : CfgS): S
   type cfg_statement =
     | CFG_STacDeclaration of {
         identifier : string;
-        trvalue : CfgS.tac_typed_rvalue;
+        trvalue : CfgS.rvalue;
       }
     | CFG_STacModification of {
         identifier : string;
-        trvalue : CfgS.tac_typed_rvalue;
+        trvalue : CfgS.rvalue;
       }
     | CFG_STDerefAffectation of {
         identifier : string;
-        trvalue : CfgS.tac_typed_rvalue;
+        trvalue : CfgS.rvalue;
       }
 
   type bbe_if = {
-    condition : CfgS.tac_typed_expression;
+    condition : CfgS.atom;
     if_label : string;
     else_label : string;
   }
 
   type basic_block_end =
     | BBe_if of bbe_if
-    | Bbe_return of CfgS.tac_typed_expression
+    | Bbe_return of CfgS.atom
 
   type constraints = {
     parameters_constr : (variable * int) list list;
@@ -471,7 +472,7 @@ module Make (CfgS : CfgS): S
       locals_vars : TypedIdentifierSet.t;
     }
 
-    type liveness_var_block = Always_alive | Die_at of int | Die_in_ending
+    type liveness_var_block = Die_at of int | Die_in_ending
 
     (**
       @returns : whenever the variable leaves the block
@@ -485,11 +486,6 @@ module Make (CfgS : CfgS): S
         (bbd :
           (cfg_statement, basic_block_end option) Detail.basic_block_detail) =
       TypedIdentifierSet.diff bbd.in_vars bbd.out_vars
-
-    let does_in_vars_dies_in_block (elt : variable)
-        (bbd :
-          (cfg_statement, basic_block_end option) Detail.basic_block_detail) =
-      bbd |> dying_in_vars_in_block |> TypedIdentifierSet.mem elt
 
     let when_variable_dies ~start_from (elt : variable)
         (bbd :
@@ -527,10 +523,6 @@ module Make (CfgS : CfgS): S
       match when_variable_dies ~start_from elt bdd with
       | Die_at n -> Some n
       | Die_in_ending -> None
-      | Always_alive ->
-          elt |> CfgS.repr
-          |> Printf.sprintf "The variable %s outlives the block"
-          |> invalid_arg
 
     (**
     Remove the from the hashtable the variable that die at the times of [current]
@@ -865,12 +857,12 @@ end
 
 module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with 
   type variable = CfgS.variable and 
-  type tac_typed_expression = CfgS.tac_typed_expression and
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+  type atom = CfgS.atom and
+  type rvalue = CfgS.rvalue
 ): SP 
 with type variable = CfgS.variable and
-  type tac_typed_expression = CfgS.tac_typed_expression and
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue 
+  type atom = CfgS.atom and
+  type rvalue = CfgS.rvalue 
 = struct
   module Cfg = Make(CfgS)
   include Cfg
@@ -884,11 +876,11 @@ with type variable = CfgS.variable and
 
     let string_of_cfg_statement = function
       | CFG_STacDeclaration {identifier; trvalue} ->
-        sprintf "%s = %s" identifier (string_of_tac_typed_rvalue trvalue)
+        sprintf "%s = %s" identifier (string_of_rvalue trvalue)
       | CFG_STDerefAffectation {identifier; trvalue} ->
-        sprintf "*%s <- %s" identifier (string_of_tac_typed_rvalue trvalue)
+        sprintf "*%s <- %s" identifier (string_of_rvalue trvalue)
       | CFG_STacModification {identifier; trvalue} ->
-        sprintf "%s <- %s" identifier (string_of_tac_typed_rvalue trvalue)
+        sprintf "%s <- %s" identifier (string_of_rvalue trvalue)
 
     let string_of_cfg_liveness_statement (cfgl_statement: Liveness.cfg_liveness_statement) = 
       Printf.sprintf "%s [%s]" 
@@ -901,9 +893,9 @@ with type variable = CfgS.variable and
 
       let string_of_basic_block_end = function
         | Bbe_return tte -> Printf.sprintf "return %s" 
-          (string_of_tac_typed_expression tte)
+          (string_of_atom tte)
         | BBe_if {condition; if_label; else_label} -> Printf.sprintf "if %s goto %s\n\tgoto %s" 
-          (string_of_tac_typed_expression condition)
+          (string_of_atom condition)
           if_label
           else_label
   end

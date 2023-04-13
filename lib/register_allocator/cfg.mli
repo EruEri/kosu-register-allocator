@@ -24,10 +24,10 @@ module type CfgS = sig
     type t = variable
 
     (** the type of elementary value in a 3 address code language *)
-    type tac_typed_expression
+    type atom
 
     (** the type of "expression" at the right in a 3 address code langauge  *)
-    type tac_typed_rvalue
+    type rvalue
 
     (** string representation of [varriable]: Mostly for debug *)
     val repr : variable -> string
@@ -35,25 +35,25 @@ module type CfgS = sig
     (** compare two variable*)
     val compare : variable -> variable -> int
 
-    (* Create a variable from the lvalue identifier and the [tac_typed_rvalue] *)
-    val lvalue_variable : string -> tac_typed_rvalue -> variable
-    val lvalue_deref_variable : string -> tac_typed_rvalue -> variable
-    val ttrv_identifiers_used : tac_typed_rvalue -> variable list
-    val tte_idenfier_used : tac_typed_expression -> variable list
+    (* Create a variable from the lvalue identifier and the [rvalue] *)
+    val lvalue_variable : string -> rvalue -> variable
+    val lvalue_deref_variable : string -> rvalue -> variable
+    val ttrv_identifiers_used : rvalue -> variable list
+    val tte_idenfier_used : atom -> variable list
 
     (** return whenever the rvalue affected a value to the variable *)
-    val is_affectation : tac_typed_rvalue -> bool
-    val variables_as_parameter : tac_typed_rvalue -> (variable * int) list option
+    val is_affectation : rvalue -> bool
+    val variables_as_parameter : rvalue -> (variable * int) list option
   end
   
   module type CfgPprintSig = sig
     type variable
-    type tac_typed_rvalue
-    type tac_typed_expression
+    type rvalue
+    type atom
     
     val string_of_variable: variable -> string
-    val string_of_tac_typed_rvalue: tac_typed_rvalue -> string
-    val string_of_tac_typed_expression: tac_typed_expression -> string
+    val string_of_rvalue: rvalue -> string
+    val string_of_atom: atom -> string
   end
   
   module type ABI = sig
@@ -90,8 +90,9 @@ module type VariableSig = sig
 module type S = sig
 
     type variable
-    type tac_typed_rvalue
-    type tac_typed_expression
+    type rvalue
+    type atom
+    type constraints
 
     
     module VariableSig : sig
@@ -114,26 +115,26 @@ module type S = sig
     type cfg_statement =
     | CFG_STacDeclaration of {
         identifier : string;
-        trvalue : tac_typed_rvalue;
+        trvalue : rvalue;
       }
     | CFG_STacModification of {
         identifier : string;
-        trvalue : tac_typed_rvalue;
+        trvalue : rvalue;
       }
     | CFG_STDerefAffectation of {
         identifier : string;
-        trvalue : tac_typed_rvalue;
+        trvalue : rvalue;
       }
 
       type bbe_if = {
-        condition : tac_typed_expression;
+        condition : atom;
         if_label : string;
         else_label : string;
       }
   
       type basic_block_end =
       | BBe_if of bbe_if
-      | Bbe_return of tac_typed_expression
+      | Bbe_return of atom
 
       module Basic : sig
         type ('a, 'b) basic_block = {
@@ -235,14 +236,14 @@ end
 
 module Make (CfgS: CfgS) : S with 
     type variable = CfgS.variable and 
-    type tac_typed_expression  = CfgS.tac_typed_expression and
-    type tac_typed_rvalue = CfgS.tac_typed_rvalue
+    type atom  = CfgS.atom and
+    type rvalue = CfgS.rvalue
 
 module MakePprint(CfgS: CfgS)(Pp: CfgPprintSig with 
     type variable = CfgS.variable and 
-    type tac_typed_expression = CfgS.tac_typed_expression and
-    type tac_typed_rvalue = CfgS.tac_typed_rvalue
+    type atom = CfgS.atom and
+    type rvalue = CfgS.rvalue
   ) : SP with 
   type variable = CfgS.variable and 
-  type tac_typed_expression  = CfgS.tac_typed_expression and
-  type tac_typed_rvalue = CfgS.tac_typed_rvalue
+  type atom  = CfgS.atom and
+  type rvalue = CfgS.rvalue
