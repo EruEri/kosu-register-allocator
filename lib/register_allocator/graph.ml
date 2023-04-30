@@ -160,6 +160,11 @@ module ColoredMake (S : OrderedType) (Color : ColoredType) = struct
   let union_edges edges graph =
     { graph with edges = EdgeSet.union edges graph.edges }
 
+  let remove_node_color node cg = 
+    {
+      cg with nodes = NodeSet.map (fun cn -> if S.compare cn.node node = 0 then { cn with color = None} else cn ) cg.nodes
+    }
+
   let add_uncolored_node ?color node graph =
     add_node (create_colored color node) graph
 

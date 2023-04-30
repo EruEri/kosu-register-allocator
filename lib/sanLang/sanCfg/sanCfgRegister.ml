@@ -16,7 +16,7 @@
 (**********************************************************************************************)
 
 
-type color =
+type register =
   | R0
   | R1
   | R2
@@ -32,9 +32,34 @@ type color =
   | R12
   | R13
 
-type t = color
+type t = register
+
+type any = unit
 
 let compare = compare
+
+let any = ()
+
+let registers = []
+
+let callee_saved_register = []
+
+let caller_saved_register = [
+  R0;
+  R1;
+  R2;
+  R3;
+  R4;
+  R5;
+  R6;
+  R7;
+  R8;
+  R9;
+  R10;
+  R11;
+  R12;
+  R13
+]
 
 let arguments_register = [
     R0;

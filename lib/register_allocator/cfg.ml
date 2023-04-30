@@ -49,10 +49,11 @@ module type CfgPprintSig = sig
 end
 
 module type ABI = sig
-  type register
-  type t = register
+  type t
+  type register = t
+  type variable
   type any
-  type rktype
+
 
   type return_strategy =
     | Indirect_return
@@ -61,14 +62,13 @@ module type ABI = sig
 
   val compare : register -> register -> int
   val any : any
-  val registers : register list
   val callee_saved_register : register list
   val caller_saved_register : register list
   val syscall_register : register list
   val argument_register : register list
-  val does_return_hold_in_register : any -> rktype -> bool
+  val does_return_hold_in_register : any -> variable -> bool
   val indirect_return_register : register
-  val return_strategy : any -> rktype -> return_strategy
+  val return_strategy : any -> variable -> return_strategy
 end
 
 module type ColoredType = Graph.ColoredType
@@ -200,7 +200,7 @@ module type S = sig
       val infer: Liveness.cfg_liveness_detail -> IG.graph
   end
 
-  module GreedyColoring (ABI : ABI) :
+  module GreedyColoring (ABI : ABI with type variable = VariableSig.t) :
       sig
         module ColoredGraph : sig
           include module type of Graph.ColoredMake(VariableSig)(ABI)
@@ -309,6 +309,12 @@ module Make (CfgS : CfgS): S
 
     let fetch_basic_block_from_label label_name bbset =
       bbset |> BasicBlockMap.find label_name
+
+    let identifier_of_stmt = function
+    | CFG_STDerefAffectation { identifier; _ }
+    | CFG_STacDeclaration { identifier; _ }
+    | CFG_STacModification { identifier; _ } ->
+      identifier
 
     let trvalue_of_stmt = function
       | CFG_STDerefAffectation { trvalue; _ }
@@ -840,18 +846,96 @@ module Make (CfgS : CfgS): S
         cfg.blocks_liveness_details graph
   end
 
-  module GreedyColoring (Color : ColoredType) = struct
-    module ColoredGraph = Graph.ColoredMake (VariableSig) (Color)
+  module GreedyColoring (ABI : ABI with type variable = CfgS.variable)  = struct
+    module ColoredGraph = Graph.ColoredMake (VariableSig) (ABI)
 
-    let coloration ~(parameters : (TypedIdentifierSet.elt * Color.t) list)
+    module VariableReturnStrategySig = struct
+      type t = (variable * ABI.return_strategy)
+
+      let compare lhs rhs = 
+        let i_compare = CfgS.compare (fst lhs) (fst rhs) in
+        if i_compare = 0 then compare (snd lhs) (snd rhs)
+        else i_compare
+    end
+
+
+    module VariableReturnStrategySet = Set.Make(VariableReturnStrategySig)
+    module VariableReturnStrategyMap = Map.Make(VariableSig)
+
+    let variable_return_set_aux map stmt = 
+      let rvalue = Basic.trvalue_of_stmt stmt in
+      match CfgS.variables_as_parameter rvalue  with
+      | None -> map
+      | Some _ -> 
+        let lvalue_var = CfgS.lvalue_variable (Basic.identifier_of_stmt stmt) rvalue in
+        let ret_strat = ABI.return_strategy ABI.any lvalue_var in
+        let singleton = VariableReturnStrategySet.singleton (lvalue_var, ret_strat) in
+        match VariableReturnStrategyMap.find_opt lvalue_var map with
+        | None -> VariableReturnStrategyMap.add lvalue_var singleton map
+        | Some set -> 
+          let extended_set = VariableReturnStrategySet.union singleton set in
+          VariableReturnStrategyMap.add lvalue_var extended_set map
+
+    let variable_return_set (cfg: Liveness.cfg_liveness_detail): VariableReturnStrategySet.t VariableReturnStrategyMap.t = 
+      let open Basic in
+      let open Detail in
+      let open Liveness in
+      BasicBlockMap.fold (fun _ block map -> 
+        block.basic_block.cfg_statements |> List.fold_left (fun acc_map stmt -> 
+          variable_return_set_aux acc_map (stmt.cfg_statement)
+        ) map
+      ) cfg.blocks_liveness_details VariableReturnStrategyMap.empty
+
+    let return_color_variable variable = 
+      match ABI.return_strategy ABI.any variable with
+      | ABI.Simple_return t -> Some (variable, t)
+      | _ -> None 
+
+    let base_coloration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list)
         ~available_color (cfg : Liveness.cfg_liveness_detail) =
       let open Inference_Graph in
       let base_graph = infer cfg in
       let _constraints = constraints cfg in
+
       let colored_graph =
         ColoredGraph.of_graph ~precolored:parameters base_graph
       in
       ColoredGraph.color_graph available_color colored_graph
+
+      let decolaration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list) (cfg : Liveness.cfg_liveness_detail) (cg: ColoredGraph.colored_graph) = 
+        let constraints = Inference_Graph.constraints cfg in
+        let return_strategies = variable_return_set cfg in
+
+        let extented = constraints.return |> TypedIdentifierSet.elements |> List.filter_map return_color_variable in
+        let cg = parameters |> List.fold_left (fun acc_cg (elt, reg) -> 
+          match extented |> List.find_opt (fun (var, _) -> CfgS.compare elt var = 0) with
+          | None -> acc_cg
+          | Some (variable, color) -> begin match ABI.compare color reg = 0 with
+            | true -> acc_cg
+            | false -> ColoredGraph.remove_node_color variable acc_cg
+          end
+        ) cg in
+        let cg = VariableReturnStrategyMap.fold (fun variable strategie_set acc_cg -> 
+          let colored_node = ColoredGraph.find variable acc_cg in
+          let final_color = colored_node.color |> Option.map (fun _ -> 
+            VariableReturnStrategySet.fold (fun strategy acc ->
+                match strategy with
+                | (_, ABI.Indirect_return ) -> None
+                |  _ -> acc
+              ) strategie_set colored_node.color
+            ) |> Option.value ~default:None
+          in
+          match final_color with 
+          | Some _ -> acc_cg
+          | None -> ColoredGraph.remove_node_color variable acc_cg
+        ) return_strategies cg in 
+        cg
+
+      let coloration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list)
+        ~available_color (cfg : Liveness.cfg_liveness_detail) = 
+        let cg = base_coloration ~parameters ~available_color cfg in
+        let cg = decolaration ~parameters cfg cg in
+        cg
   end
 end
 

@@ -57,10 +57,11 @@ module type CfgS = sig
   end
   
   module type ABI = sig
-    type register
-    type t = register
+    type t
+    type register = t
+    type variable
     type any
-    type rktype
+  
   
     type return_strategy =
       | Indirect_return
@@ -69,14 +70,13 @@ module type CfgS = sig
   
     val compare : register -> register -> int
     val any : any
-    val registers : register list
     val callee_saved_register : register list
     val caller_saved_register : register list
     val syscall_register : register list
     val argument_register : register list
-    val does_return_hold_in_register : any -> rktype -> bool
+    val does_return_hold_in_register : any -> variable -> bool
     val indirect_return_register : register
-    val return_strategy : any -> rktype -> return_strategy
+    val return_strategy : any -> variable -> return_strategy
   end
 
 module type ColoredType = Graph.ColoredType
@@ -209,7 +209,7 @@ module type S = sig
         val infer: Liveness.cfg_liveness_detail -> IG.graph
     end
 
-    module GreedyColoring (ABI : ABI) :
+    module GreedyColoring (ABI : ABI with type variable = VariableSig.t) :
         sig
           module ColoredGraph : sig
             include module type of Graph.ColoredMake(VariableSig)(ABI)
