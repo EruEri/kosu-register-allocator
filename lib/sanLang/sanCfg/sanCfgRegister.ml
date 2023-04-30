@@ -16,6 +16,7 @@
 (**********************************************************************************************)
 
 
+
 type register =
   | R0
   | R1
@@ -36,11 +37,18 @@ type t = register
 
 type any = unit
 
+type variable = (string * SanTyped.SanTyAst.san_type)
+
+type return_strategy =
+  | Indirect_return
+  | Simple_return of register
+  | Splitted_return of register * register
+
 let compare = compare
 
 let any = ()
 
-let registers = []
+let syscall_register = []
 
 let callee_saved_register = []
 
@@ -86,3 +94,9 @@ let color_map = [
     (R10, "magenta");
     (R11, "purple")
   ]
+
+let does_return_hold_in_register _ _ = true
+
+let indirect_return_register = R8
+
+let return_strategy () _ = Simple_return R0 
