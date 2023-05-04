@@ -478,6 +478,34 @@ module Make (CfgS : CfgS): S
       locals_vars : TypedIdentifierSet.t;
     }
 
+    let is_function_call stmt = 
+      Option.is_some @@ CfgS.variables_as_parameter @@ Basic.trvalue_of_stmt stmt
+
+    let rec does_live_after_function_call variable (liveness_stmts, ending) = 
+      match liveness_stmts with
+      | [] | _::[] -> false
+      | t1::t2::[] -> 
+        LivenessInfo.is_alive variable t1.liveness_info && is_function_call t2.cfg_statement && (ending |> snd |> LivenessInfo.is_alive variable)
+      | t1::(t2::t3::_ as next) -> 
+        let pre_condition = LivenessInfo.is_alive variable t1.liveness_info && is_function_call t2.cfg_statement in
+        let is_alive_after = LivenessInfo.is_alive variable t3.liveness_info in
+        if not pre_condition then does_live_after_function_call variable (next, ending)
+        else if pre_condition && is_alive_after then true
+        else if pre_condition && not is_alive_after then false
+        else failwith "Unreachable"
+
+    let rec does_live_after_function_call_cfg variable cfg = 
+      let open Basic in
+      let open Detail in
+      BasicBlockMap.fold (fun _ block acc_live_after -> 
+        if acc_live_after then acc_live_after
+        else
+          let ending = block.basic_block.ending in
+          let stmts = block.basic_block.cfg_statements in
+          let does_survive = does_live_after_function_call variable (stmts,ending) in
+          does_survive
+      ) cfg.blocks_liveness_details false
+
     type liveness_var_block = Die_at of int | Die_in_ending
 
     (**
@@ -781,7 +809,6 @@ module Make (CfgS : CfgS): S
       |> List.fold_left
            (fun acc_graph (link, along) -> IG.link link ~along acc_graph)
            graph
-
     let constraints (cfg : Liveness.cfg_liveness_detail) =
       let open Basic in
       let open Detail in
@@ -902,9 +929,20 @@ module Make (CfgS : CfgS): S
       in
       ColoredGraph.color_graph available_color colored_graph
 
+      
+
       let decolaration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list) (cfg : Liveness.cfg_liveness_detail) (cg: ColoredGraph.colored_graph) = 
         let constraints = Inference_Graph.constraints cfg in
         let return_strategies = variable_return_set cfg in
+
+        let _parameters_functions = constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements |> List.map Constraint.ParameterSet.elements |> List.flatten  in
+
+        let cg = TypedIdentifierSet.(parameters |> List.map fst |> of_list |> union cfg.locals_vars |> elements) |> List.fold_left (fun acc_cg variable ->
+          match Liveness.does_live_after_function_call_cfg variable cfg with
+          | true -> ColoredGraph.remove_node_color variable acc_cg
+          | false -> acc_cg
+        ) cg  in
+
 
         let extented = constraints.return |> TypedIdentifierSet.elements |> List.filter_map return_color_variable in
         let cg = parameters |> List.fold_left (fun acc_cg (elt, reg) -> 
