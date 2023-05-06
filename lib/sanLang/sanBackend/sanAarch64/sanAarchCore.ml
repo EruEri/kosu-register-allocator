@@ -40,6 +40,9 @@ end
 
 
 module Condition_Code = struct
+  type shift = SH16 | SH32 | SH48
+  type data_size = B | SB
+
   type condition_code =
     | EQ  (** Equal *)
     | NE  (** Not Equal *)
@@ -175,5 +178,153 @@ module Register = struct
   let return_strategy _ = Simple_return X0
 end
 
+module Operande = struct
+  type src = [
+    `ILitteral of int64
+    | `Register of Register.register
+  ]
+
+  type dst = Register.register
+end
 
 module GreedyColoration = SanCfg.SanRegisterAllocator.GreedyColoring(Register)
+
+module Location = struct
+  type adress_offset = [ `ILitteral of int64 | `Register of Register.register ]
+  type address = { base : Register.register; offset : adress_offset }
+  type adress_mode =
+  | Immediat (* out = *intptr; *)
+  | Prefix (* out = *(++intptr);*)
+  | Postfix (* out = *(intptr++);*)
+
+  type location = 
+  | LocReg of Register.register
+  | LocAddr of address
+
+  let create_adress ?(offset = 0L) base = { base; offset = `ILitteral offset }
+
+  let str_ldr_offset_range reg n =
+    let open Register in
+    if n < 0L then -256L < n
+    else
+      match reg.size with
+      | SReg32 -> n < 255L || (Int64.unsigned_rem n 4L = 0L && n < 16380L)
+      | SReg64 -> n < 255L || (Int64.unsigned_rem n 8L = 0L && n < 32760L)
+  
+  let is_offset_too_far reg address =
+    match address with
+    | `ILitteral i when not @@ str_ldr_offset_range reg i -> true
+    | `ILitteral _ | `Register _ -> false
+  
+  let increment_adress off adress =
+    match adress.offset with
+    | `ILitteral offset ->
+        { adress with offset = `ILitteral (Int64.add offset off) }
+    | `Register _reg -> failwith "Increment register based address"
+end
+
+
+module Instruction = struct
+  open Condition_Code
+  open Operande
+  open Register
+  open Location
+
+  type t = 
+  | Mov of {destination: register; source: Operande.src}
+  | Movk of { destination : Register.register; operand : src; shift : shift option }
+  | Mvn of { destination : Register.register; operand : src }
+  | Not of { destination : Register.register; source : src }
+  | Neg of { destination : Register.register; source : Register.register }
+  | Add of { destination : Register.register; operand1 : Register.register;
+    (* Int12 litteral oprand*) operand2 : src; offset : bool }
+  | Mul of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : Register.register;
+    }
+  | SDiv of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : Register.register;
+    }
+  | Lsl of {
+      destination : Register.register;
+      operand1 : Register.register;
+      (* LIteral range [0-31] *)
+      operand2 : src;
+    }
+  | Lsr of {
+      destination : Register.register;
+      operand1 : Register.register;
+      (* LIteral range [0-31] *)
+      operand2 : src;
+    }
+  | Asr of {
+      destination : Register.register;
+      operand1 : Register.register;
+      (* LIteral range [0-31] *)
+      operand2 : src;
+    }
+  | Csinc of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : Register.register;
+      condition : condition_code;
+    }
+
+  | Cmp of { operand1 : Register.register; operand2 : src }
+  | Cset of { register : Register.register; cc : condition_code }
+  (* Bitwise And*)
+  | And of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : src;
+    }
+  (* Bitwise OR*)
+  | Orr of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : src;
+    }
+  (* Bitwise XOR*)
+  | Eor of {
+      destination : Register.register;
+      operand1 : Register.register;
+      operand2 : src;
+    }
+| Str of { data_size : data_size option; source : Register.register;
+    address : address; address_mode : adress_mode;
+    }
+  | Stp of { x1 : Register.register; x2 : Register.register; address : address;
+      adress_mode : adress_mode;
+    }
+  | Adrp of { dst : Register.register; label : string }
+  | B of { cc : condition_code option; label : string }
+  | Bl of { cc : condition_code option; label : string }
+  | RET
+end
+
+module Line = struct
+  type line = 
+  | Instruction of Instruction.t
+  | Comment of string
+  | Label of string
+  | Directive of string
+
+  type asmline = AsmLine of line * string option
+
+  let instruction ?comment instr = AsmLine (Instruction instr, comment)
+
+  let comment message = AsmLine (Comment message, None)
+
+  let label ?comment l = AsmLine (Instruction l, comment)
+
+  let directive ?comment d  = AsmLine (Instruction d, comment)
+end
+
+module AsmProgram = Common.AsmAst.Make(Line)
+
+module FrameManager = struct
+
+end

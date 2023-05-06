@@ -38,14 +38,4 @@ type asm_module_node =
   | AConst of asm_const_decl
 
 type asm_module = AsmModule of asm_module_node list
-type asm_module_path = { apath : string; asm_module : asm_module }
-
-type named_asm_module_path = {
-  filename : string;
-  asm_module_path : asm_module_path;
-  san_module : SanTyped.SanTyAst.tysan_module;
-  litterals : litterals;
-}
-
-type asm_program = named_asm_module_path list
 end
