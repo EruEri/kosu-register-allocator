@@ -494,7 +494,7 @@ module Make (CfgS : CfgS): S
         else if pre_condition && not is_alive_after then false
         else failwith "Unreachable"
 
-    let rec does_live_after_function_call_cfg variable cfg = 
+    let does_live_after_function_call_cfg variable cfg = 
       let open Basic in
       let open Detail in
       BasicBlockMap.fold (fun _ block acc_live_after -> 
@@ -922,10 +922,50 @@ module Make (CfgS : CfgS): S
         ~available_color (cfg : Liveness.cfg_liveness_detail) =
       let open Inference_Graph in
       let base_graph = infer cfg in
-      let _constraints = constraints cfg in
+      let constraints = constraints cfg in
+
+      let module VariableAbiMap = Map.Make(struct
+        type t = TypedIdentifierSet.elt
+
+        let compare = CfgS.compare
+      end) in
+
+      let map = parameters |> List.to_seq |> VariableAbiMap.of_seq in
+
+      let parameters_functions = 
+        constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements 
+        |> List.map Constraint.ParameterSet.elements |> List.flatten |> List.fold_left (fun acc_map (variable, index) ->
+          let () = Printf.printf "variable = %s: index = %d\n%!" (CfgS.repr variable) index in
+          match VariableAbiMap.find_opt variable acc_map with
+          | None -> begin match List.nth_opt ABI.arguments_register index with
+            | None -> acc_map
+            | Some color -> 
+              let nodes = IG.egde_of variable base_graph in
+              let conflicts = TypedIdentifierSet.filter (
+                fun iv -> match VariableAbiMap.find_opt iv acc_map with
+                | None -> false
+                | Some icolor -> ABI.compare icolor color = 0
+              ) nodes in
+
+              let are_all_parameters = conflicts |> TypedIdentifierSet.for_all (fun iv ->
+                VariableAbiMap.mem iv map
+              ) in
+              let () = Printf.printf "has conflict = %b\n\n%!" are_all_parameters in
+
+              match are_all_parameters with
+              | false -> acc_map
+              | true -> 
+                VariableAbiMap.add variable color @@ TypedIdentifierSet.fold (fun iv inner_acc_map -> 
+                  VariableAbiMap.remove iv inner_acc_map
+                ) nodes acc_map 
+          end
+          | Some _ -> VariableAbiMap.remove variable acc_map
+
+        ) map 
+        |> VariableAbiMap.bindings in
 
       let colored_graph =
-        ColoredGraph.of_graph ~precolored:parameters base_graph
+        ColoredGraph.of_graph ~precolored:parameters_functions base_graph
       in
       ColoredGraph.color_graph available_color colored_graph
 
@@ -935,7 +975,12 @@ module Make (CfgS : CfgS): S
         let constraints = Inference_Graph.constraints cfg in
         let return_strategies = variable_return_set cfg in
 
-        let _parameters_functions = constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements |> List.map Constraint.ParameterSet.elements |> List.flatten  in
+        (* let parameters_functions = constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements |> List.map Constraint.ParameterSet.elements |> List.flatten  in
+
+        let cg = parameters_functions |> List.fold_left (fun acc_cg (variable, index) -> 
+          ColoredGraph.remove_node_color variable cg
+        ) cg 
+        in *)
 
         let cg = TypedIdentifierSet.(parameters |> List.map fst |> of_list |> union cfg.locals_vars |> elements) |> List.fold_left (fun acc_cg variable ->
           match Liveness.does_live_after_function_call_cfg variable cfg with

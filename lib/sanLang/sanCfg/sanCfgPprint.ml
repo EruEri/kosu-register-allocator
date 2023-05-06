@@ -91,7 +91,7 @@ let export_colored_graph ~outchan (cfg: Liveness.cfg_liveness_detail) () =
     let open SanCfgAst in
     let open SanCfgAst.GreedyColoring.ColoredGraph in
     let parameters = combine_safe cfg.parameters SanCfgRegister.arguments_register in
-    let graph = GreedyColoring.coloration ~parameters ~available_color:[R0; R9; R10; R3] cfg in
+    let graph = GreedyColoring.coloration ~parameters ~available_color:[R1; R9; R10; R3] cfg in
     let bindings = GreedyColoring.ColoredGraph.bindings graph in
     let () = Printf.fprintf outchan "strict graph %s {\n" (Printf.sprintf "infered_%s" cfg.entry_block) in
     let () = bindings |> List.iter (fun (node, _) -> 
