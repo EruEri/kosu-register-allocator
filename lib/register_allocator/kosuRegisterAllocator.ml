@@ -23,5 +23,6 @@
 (**********************************************************************************************)
 
 module Make = Cfg.Make
+module type ABI = Cfg.ABI
 module MakePprint = Cfg.MakePprint
 module Graph = Graph

@@ -50,25 +50,22 @@ end
 
 module type ABI = sig
   type t
-  type register = t
   type variable
-  type any
 
 
   type return_strategy =
     | Indirect_return
-    | Simple_return of register
-    | Splitted_return of register * register
+    | Simple_return of t
+    | Splitted_return of t * t
 
-  val compare : register -> register -> int
-  val any : any
-  val callee_saved_register : register list
-  val caller_saved_register : register list
-  val syscall_register : register list
-  val arguments_register : register list
-  val does_return_hold_in_register : any -> variable -> bool
-  val indirect_return_register : register
-  val return_strategy : any -> variable -> return_strategy
+  val compare : t -> t -> int
+  val callee_saved_register : t list
+  val caller_saved_register : t list
+  val syscall_register : t list
+  val arguments_register : t list
+  val does_return_hold_in_register : variable -> bool
+  val indirect_return_register : t
+  val return_strategy: variable -> return_strategy
 end
 
 module type ColoredType = Graph.ColoredType
@@ -895,7 +892,7 @@ module Make (CfgS : CfgS): S
       | None -> map
       | Some _ -> 
         let lvalue_var = CfgS.lvalue_variable (Basic.identifier_of_stmt stmt) rvalue in
-        let ret_strat = ABI.return_strategy ABI.any lvalue_var in
+        let ret_strat = ABI.return_strategy lvalue_var in
         let singleton = VariableReturnStrategySet.singleton (lvalue_var, ret_strat) in
         match VariableReturnStrategyMap.find_opt lvalue_var map with
         | None -> VariableReturnStrategyMap.add lvalue_var singleton map
@@ -914,7 +911,7 @@ module Make (CfgS : CfgS): S
       ) cfg.blocks_liveness_details VariableReturnStrategyMap.empty
 
     let return_color_variable variable = 
-      match ABI.return_strategy ABI.any variable with
+      match ABI.return_strategy variable with
       | ABI.Simple_return t -> Some (variable, t)
       | _ -> None 
 
@@ -959,7 +956,7 @@ module Make (CfgS : CfgS): S
       let parameters_functions = 
         constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements 
         |> List.map Constraint.ParameterSet.elements |> List.flatten |> List.fold_left (fun acc_map (variable, index) ->
-          let () = Printf.printf "variable = %s: index = %d\n%!" (CfgS.repr variable) index in
+          (* let () = Printf.printf "variable = %s: index = %d\n%!" (CfgS.repr variable) index in *)
           match VariableAbiMap.find_opt variable acc_map with
           | None -> begin match List.nth_opt ABI.arguments_register index with
             | None -> acc_map
@@ -973,7 +970,7 @@ module Make (CfgS : CfgS): S
         
         let return_functions = 
           constraints.return |> TypedIdentifierSet.elements |> List.fold_left (fun acc_map variable -> 
-            match ABI.return_strategy ABI.any variable with
+            match ABI.return_strategy variable with
             | Indirect_return | Splitted_return _ -> acc_map
             | Simple_return reg -> try_color base_graph variable reg acc_map
         ) parameters_functions in

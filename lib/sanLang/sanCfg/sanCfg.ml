@@ -17,3 +17,4 @@
 
 module SanCfgPprint = SanCfgPprint
 module SanCfgConv = SanCfgConv
+module SanRegisterAllocator = SanCfgAst.SanRegisterAllocator

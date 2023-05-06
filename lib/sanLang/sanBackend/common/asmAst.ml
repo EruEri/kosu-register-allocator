@@ -15,88 +15,37 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
+module type InstructionLine = sig
+  type asmline
+end
 
 
-type register =
-  | R0
-  | R1
-  | R2
-  | R3
-  | R4
-  | R5
-  | R6
-  | R7
-  | R8
-  | R9
-  | R10
-  | R11
-  | R12
-  | R13
+module Make(InstructionLine: InstructionLine) = struct
+  type litterals = {
+    str_lit_map : (string, Util.stringlit_label) Hashtbl.t;
+}
 
-type t = register
+type asmline = InstructionLine.asmline
+type asm_function_decl = { asm_name : string; asm_body : asmline list }
 
-type any = unit
+type asm_const_decl = {
+  asm_const_name : string;
+  value : [ `IntVal of int64 | `StrVal of string ];
+}
 
-type variable = (string * SanTyped.SanTyAst.san_type)
+type asm_module_node =
+  | Afunction of asm_function_decl
+  | AConst of asm_const_decl
 
-type return_strategy =
-  | Indirect_return
-  | Simple_return of register
-  | Splitted_return of register * register
+type asm_module = AsmModule of asm_module_node list
+type asm_module_path = { apath : string; asm_module : asm_module }
 
-let compare = compare
+type named_asm_module_path = {
+  filename : string;
+  asm_module_path : asm_module_path;
+  san_module : SanTyped.SanTyAst.tysan_module;
+  litterals : litterals;
+}
 
-let any = ()
-
-let syscall_register = []
-
-let callee_saved_register = []
-
-let caller_saved_register = [
-  R0;
-  R1;
-  R2;
-  R3;
-  R4;
-  R5;
-  R6;
-  R7;
-  R8;
-  R9;
-  R10;
-  R11;
-  R12;
-  R13
-]
-
-let arguments_register = [
-    R0;
-    R1;
-    R2;
-    R3;
-    R4;
-    R5;
-    R6;
-    R7
-  ]
-
-let color_map = [
-    (R0, "aqua");
-    (R1, "red");
-    (R2, "fuchsia");
-    (R3, "green");
-    (R4, "navyblue");
-    (R5, "pink");
-    (R6, "orange");
-    (R7, "yellow");
-    (R8, "hotpink");
-    (R9, "indigo");
-    (R10, "magenta");
-    (R11, "purple")
-  ]
-
-let does_return_hold_in_register _ = true
-
-let indirect_return_register = R8
-
-let return_strategy _ = Simple_return R0 
+type asm_program = named_asm_module_path list
+end

@@ -58,25 +58,22 @@ module type CfgS = sig
   
   module type ABI = sig
     type t
-    type register = t
     type variable
-    type any
   
   
     type return_strategy =
       | Indirect_return
-      | Simple_return of register
-      | Splitted_return of register * register
+      | Simple_return of t
+      | Splitted_return of t * t
   
-    val compare : register -> register -> int
-    val any : any
-    val callee_saved_register : register list
-    val caller_saved_register : register list
-    val syscall_register : register list
-    val arguments_register : register list
-    val does_return_hold_in_register : any -> variable -> bool
-    val indirect_return_register : register
-    val return_strategy : any -> variable -> return_strategy
+    val compare : t -> t -> int
+    val callee_saved_register : t list
+    val caller_saved_register : t list
+    val syscall_register : t list
+    val arguments_register : t list
+    val does_return_hold_in_register : variable -> bool
+    val indirect_return_register : t
+    val return_strategy : variable -> return_strategy
   end
 
 module type ColoredType = Graph.ColoredType
@@ -215,7 +212,7 @@ module type S = sig
             include module type of Graph.ColoredMake(VariableSig)(ABI)
           end
 
-          val coloration: parameters:(variable * ABI.register) list -> available_color:ABI.t list -> Liveness.cfg_liveness_detail -> ColoredGraph.colored_graph
+          val coloration: parameters:(variable * ABI.t) list -> available_color:ABI.t list -> Liveness.cfg_liveness_detail -> ColoredGraph.colored_graph
         end
 
 end
