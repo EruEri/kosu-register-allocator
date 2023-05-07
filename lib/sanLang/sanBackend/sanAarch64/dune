@@ -19,5 +19,5 @@
  (name sanAarch64)
  (enabled_if
   (= %{profile} san))
-  (modules sanAarch64 sanAarchCore)
+  (modules sanAarch64 sanAarchCore sanAarchConv)
  (libraries kosuRegisterAllocator sanTyped sanCfg common))

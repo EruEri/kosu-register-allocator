@@ -108,6 +108,21 @@ module Register = struct
     | 32 -> SReg32
     | _ -> failwith "Word size unsupported" 
 
+  let worded_register register = 
+    {
+      register with size = word_regsize
+    }
+
+  let resize32 register = 
+    {
+      register with size = SReg32
+    }
+
+  let resize size register = 
+    match register.size with
+    | s when s = size -> register
+    | _ -> { register with size }
+
   let w0 = {
     register = X0;
     size = SReg32
@@ -230,6 +245,7 @@ module Operande = struct
   type src = [
     `ILitteral of int64
     | `Register of Register.register
+    | `Label of string
   ]
 
   type dst = Register.register
@@ -378,6 +394,12 @@ module Instruction = struct
   let add ?(offset = false) ~destination ~operand1 operand2 = 
     Add {destination; operand1; operand2; offset}
 
+  let adrp ~dst ~label = 
+    Adrp { dst; label}
+
+  let mov ~destination ~source = 
+    Mov {destination; source}
+
   let add_r ?(offset = false) register = add ~offset (`Register register)
 
   let ldr ~data_size ~destination ~address_src ~address_mode = 
@@ -416,6 +438,13 @@ module LineInstruction = struct
   open Register
   open Instruction
   open Line
+
+  let load_label ~label register =
+    let word_register = Register.worded_register register in
+    instructions [
+      adrp ~dst:word_register ~label;
+      add ~offset:true ~destination:word_register ~operand1:word_register (`Label label)
+    ]
 
   let mov_integer register n =
     let open Immediat in
@@ -662,8 +691,8 @@ module FrameManager = struct
           address
       )
       |> List.flatten
-      in
-      stack_sub_line :: base @ alignx29_line::store_parameters_value
+    in
+    stack_sub_line :: base @ alignx29_line::store_parameters_value
     
 
   let epilogue fd = 
