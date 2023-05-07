@@ -24,6 +24,8 @@ open Util
 
 
 module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
+  module Pp = SanAarchPprint.Make(AsmSpec)
+
   let translate_san_atom ~litterals ~target_reg fd atom = 
     match (atom.atom : SanTyped.SanTyAst.atom) with
     | String s -> 
@@ -58,25 +60,35 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
             address 
           in
         target_reg, load_lines
-  
+
+  let location_of_atom fd atom = 
+    match (atom.atom : SanTyped.SanTyAst.atom) with
+    | Variable s ->
+      let variable = s, atom.atom_type in
+      let location = FrameManager.location_of variable fd in
+      begin match location with
+      | LocReg reg -> Some reg
+      | LocAddr _ -> None
+    end
+    | _ -> None
   
     let int64_of_bool = function
     | true -> 1L
     | false -> 0L
-  
-    let inline_native_int ~conv ~(where: Location.location) nativeint rvalue = 
-      let nativeint = conv nativeint in
-      match where with
-      | LocAddr address -> 
-        let reg = Register.r14_sized rvalue.san_type in
-        let instructions = 
-          LineInstruction.mov_integer reg (Int64.of_nativeint nativeint) 
-        in
-      instructions @ LineInstruction.str_instr 
-        ~data_size:(Condition_Code.data_size_of_type rvalue.san_type)
-        ~source:reg address
-      | LocReg reg -> 
+
+  let inline_native_int ~conv ~(where: Location.location) nativeint rvalue = 
+    let nativeint = conv nativeint in
+    match where with
+    | LocAddr address -> 
+      let reg = Register.r14_sized rvalue.san_type in
+      let instructions = 
         LineInstruction.mov_integer reg (Int64.of_nativeint nativeint) 
+      in
+    instructions @ LineInstruction.str_instr 
+      ~data_size:(Condition_Code.data_size_of_type rvalue.san_type)
+      ~source:reg address
+    | LocReg reg -> 
+      LineInstruction.mov_integer reg (Int64.of_nativeint nativeint) 
   
   let inline_uminus =
     inline_native_int ~conv:(Nativeint.neg) 
@@ -126,6 +138,46 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
     in
   
     instructions @ invers_instructions @ store_instruction
+
+
+  and translate_san_binop ~litterals ~rvalue ~(where: Location.location) fd (ty_binary: SanTyped.SanTyAst.ty_binary) = 
+  let lreg, linstructions = 
+    match location_of_atom fd ty_binary.tylhs with
+    | Some reg -> reg, []
+    | None -> translate_san_atom ~litterals ~target_reg:x13 fd ty_binary.tylhs
+  in
+  let rreg, rinstruction = 
+    match location_of_atom fd ty_binary.tylhs with
+    | Some reg -> reg, []
+    | None -> translate_san_atom ~litterals ~target_reg:x14 fd ty_binary.tylhs
+  in
+  let open SanFrontend.SanAst in
+   let arith_instructions = match ty_binary.binop with
+    | TacSelf tac_binop_self -> begin 
+      let fn = Instruction.selfbinop_of_binop tac_binop_self in
+      match where with
+      | LocReg reg ->
+        Line.instructions [fn reg lreg rreg]
+      | LocAddr addr -> 
+        let arith_instructions = Line.instruction @@ fn lreg lreg rreg in
+        let str_instructions = LineInstruction.str_instr 
+          ~data_size:(Condition_Code.data_size_of_type rvalue.san_type)
+          ~source:lreg addr
+        in
+        arith_instructions::str_instructions
+    end 
+    | TacBool tac_binop_bool -> begin match tac_binop_bool with
+    | TacOr
+    | TacSup
+    | TacSupEq
+    | TacInf
+    | TacInfEq
+    | TacEqual
+    | TacDiff
+    | TacAnd -> failwith ""
+    end
+  in
+  linstructions @ rinstruction @ arith_instructions
   
   
   and translate_san_rvalue ~litterals ~(where: Location.location) fd rvalue = 
@@ -152,7 +204,8 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
     | TYRVUnary {unop; ty_atom} -> begin 
       translate_unop unop ~litterals ~where fd ty_atom
     end
-    | TYRVBinary ty_binary -> failwith ""
+    | TYRVBinary ty_binary -> 
+      translate_san_binop ~rvalue ~litterals ~where fd ty_binary
     | TyRVFunctionCall ty_fncall -> 
       let return_type = rvalue.san_type in
       let params_reg_count = List.length Register.arguments_register in

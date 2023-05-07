@@ -140,6 +140,16 @@ module Register = struct
     size = SReg64
   }
 
+  let x13 = {
+    register = X13;
+    size = SReg64
+  }
+
+  let x14 = {
+    register = X14;
+    size = SReg64
+  }
+
   let x15 = {
     register = X15;
     size = SReg64
@@ -244,6 +254,7 @@ module Register = struct
   ]
 
   let available_register = [
+    X8;
     X9;
     X10;
     X11;
@@ -422,21 +433,62 @@ module Instruction = struct
   | Bl of { cc : condition_code option; label : string }
   | RET
 
-  let sub ~destination ~operand1 ~operand2 = 
+  let sub destination operand1 operand2 = 
     Sub {destination; operand1; operand2}
 
-  let sub_r ~operand2 = sub ~operand2:(`Register operand2) 
+  let sub_r destination operand1 operand2 = 
+    sub destination operand1 (`Register operand2) 
 
-  let add ?(offset = false) ~destination ~operand1 operand2 = 
+  let add_o ?(offset = false) ~destination ~operand1 operand2 = 
     Add {destination; operand1; operand2; offset}
 
+  let add destination operand1 operand2 = 
+    Add {destination; operand1; operand2; offset = false}
+
+  let add_r destination operand1 operand2 =
+    add destination operand1 (`Register operand2)
+
+  let mult destination operand1 operand2 =
+    Mul {destination; operand1; operand2}
+
+  let div destination operand1 operand2 = 
+    SDiv {destination; operand1; operand2}
+
+  let bitwiseor destination operand1 operand2 = 
+    Orr {destination; operand1; operand2}
+
+  let bitwiseor_r destination operand1 operand2 =
+    bitwiseor destination operand1 (`Register operand2)
+
+  let bitwisexor destination operand1 operand2 = 
+    Eor {destination; operand1; operand2}
+
+  let bitwisexor_r destination operand1 operand2 =
+    bitwisexor destination operand1 (`Register operand2)
+
+  let bitwiseand destination operand1 operand2 = 
+    And {destination; operand1; operand2}
+
+  let bitwiseand_r destination operand1 operand2 =
+    bitwiseand destination operand1 (`Register operand2)
+
+  let shiftleft destination operand1 operand2 =
+    Lsl {destination; operand1; operand2}
+
+  let shiftleft_r destination operand1 operand2 =
+    shiftleft destination operand1 (`Register operand2)
+
+  let shiftright destination operand1 operand2 =
+    Asr {destination; operand1; operand2}
+
+  let shiftright_r destination operand1 operand2 =
+    shiftright destination operand1 (`Register operand2)
+  
   let adrp ~dst ~label = 
     Adrp { dst; label}
 
   let mov ~destination ~source = 
     Mov {destination; source}
-
-  let add_r ?(offset = false) register = add ~offset (`Register register)
 
   let ldr ~data_size ~destination ~address_src ~address_mode = 
     Ldr {data_size; destination; address_src; address_mode}
@@ -466,6 +518,20 @@ module Instruction = struct
 
   let bl ?cc label = 
     Bl { cc; label}
+
+  let selfbinop_of_binop  =
+  let open SanFrontend.SanAst in
+  function
+  | TacAdd -> add_r
+  | TacMinus -> sub_r
+  | TacMult -> mult
+  | TacDiv -> div
+  | TacBitwiseOr -> bitwiseor_r
+  | TacBitwiseAnd -> bitwiseand_r
+  | TacBitwiseXor -> bitwisexor_r
+  | TacShiftLeft -> shiftleft_r
+  | TacShiftRight -> shiftright_r
+
   let is_stp_range n = -512L <= n && n <= 504L
 
   let ret = RET
@@ -501,7 +567,7 @@ module LineInstruction = struct
     let word_register = Register.worded_register register in
     instructions [
       adrp ~dst:word_register ~label;
-      add ~offset:true ~destination:word_register ~operand1:word_register (`Label label)
+      add_o ~offset:true ~destination:word_register ~operand1:word_register (`Label label)
     ]
 
   let mov_integer register n =
@@ -564,8 +630,8 @@ module LineInstruction = struct
     else
       ( mov_integer x15 framesize
         @ (instructions [
-            sub ~destination:sp ~operand1:sp ~operand2:(`ILitteral (Int64.add 16L framesize));
-            add_r ~destination:x15 ~operand1:sp x15
+            sub sp sp (`ILitteral (Int64.add 16L framesize));
+            add_r x15 sp x15
           ]),
         { base = x15; offset = `ILitteral 0L } )
   let str_instr ?(mode = Immediat) ~data_size ~source address =
@@ -724,9 +790,9 @@ module FrameManager = struct
     let stack_sub_size = Sizeof.align_16 (16 + fd.local_space) in
     let variable_frame_size = ( - ) stack_sub_size 16  in
     let base = stp_inst ~vframe:(Int64.of_int variable_frame_size) in
-    let stack_sub_line = instruction @@ sub ~destination:sp ~operand1:sp ~operand2:(`ILitteral (Int64.of_int stack_sub_size)) in
+    let stack_sub_line = instruction @@ sub sp sp (`ILitteral (Int64.of_int stack_sub_size)) in
     let alignx29_line =
-    instruction @@ add ~destination:x29 ~operand1:sp (`ILitteral (Int64.of_int variable_frame_size))
+    instruction @@ add_o ~destination:x29 ~operand1:sp (`ILitteral (Int64.of_int variable_frame_size))
     in
 
     let parameter_count = List.length Register.arguments_register in
@@ -761,7 +827,7 @@ module FrameManager = struct
     let vframe = Int64.of_int @@ ( - ) stack_space 16 in
     let base = LineInstruction.ldp_instr ~vframe in
     let stack_add =
-      instruction @@ add ~destination:sp ~operand1:sp (`ILitteral (Int64.of_int stack_space))
+      instruction @@ add_o ~destination:sp ~operand1:sp (`ILitteral (Int64.of_int stack_space))
     in
     let return = instruction ret in
 
