@@ -62,9 +62,11 @@ module Condition_Code = struct
     | LE  (** Signed less than or equal *)
     | AL  (** Always*)
 
-    let data_size_of_variable variable = match snd variable with
+    let data_size_of_type = function
     | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> None
     | Boolean | Unit -> Some B
+
+    let data_size_of_variable variable = data_size_of_type @@ snd variable
 end
 
 module Register = struct
@@ -156,6 +158,16 @@ module Register = struct
     register = SP;
     size = SReg64
   }
+
+  let w14 = {
+    register = X14; 
+    size = SReg32
+  }
+
+  let r14_sized = function
+  | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> { register = X14; size = word_regsize}
+  | Boolean | Unit -> w14
+
 
   let according_register raw_register variable = 
     match Sizeof.sizeof @@ snd variable with
@@ -288,6 +300,14 @@ module Location = struct
     | `ILitteral offset ->
         { adress with offset = `ILitteral (Int64.add offset off) }
     | `Register _reg -> failwith "Increment register based address"
+
+  let reg_opt = function
+  | LocReg reg -> Some reg
+  | LocAddr _ -> None
+
+  let address_opt = function
+  | LocAddr addr -> Some addr
+  | LocReg _ -> None
 end
 
 
@@ -408,6 +428,19 @@ module Instruction = struct
   let ldp ~x1 ~x2 ~address ~address_mode = 
     Ldp {x1; x2; address; address_mode}
 
+  let mvn ~destination ~operand = 
+    Mvn {destination; operand}
+
+  let eor ~destination ~operand1 ~operand2 = 
+    Eor {destination; operand1; operand2}
+
+  let neg ~destination ~operand = 
+    Neg {destination; source = operand}
+
+  let andi ~destination ~operand1 ~operand2 = 
+    And {destination; operand1; operand2}
+  let orr ~destination ~operand1 ~operand2 = 
+    And {destination; operand1; operand2}
   let is_stp_range n = -512L <= n && n <= 504L
 
   let ret = RET
