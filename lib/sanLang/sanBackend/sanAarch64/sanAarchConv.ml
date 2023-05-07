@@ -153,8 +153,69 @@ and translate_san_rvalue ~litterals ~(where: Location.location) fd rvalue =
     translate_unop unop ~litterals ~where fd ty_atom
   end
   | TYRVBinary ty_binary -> failwith ""
-  | TyRVFunctionCall ty_fncall -> failwith ""
+  | TyRVFunctionCall ty_fncall -> 
+    let return_type = rvalue.san_type in
+    let params_reg_count = List.length Register.arguments_register in
+    let register_parameters, stack_parameters = 
+      ty_fncall.parameters 
+      |> List.mapi Util.couple
+      |> List.partition_map (fun (i, value) -> 
+        if i < params_reg_count then Either.left value else Either.right value )
+    in
+
+    let register_parameters_instructions = 
+      Register.arguments_register
+      |> Util.combine_safe register_parameters
+      |> List.map (fun (atom, raw_register) -> 
+        let target_reg = Register.according_register raw_register atom.atom_type in
+        snd @@ translate_san_atom ~litterals ~target_reg fd atom  
+      )
+      |> List.flatten
+    in
+
+    let call_instruction = 
+      Line.instruction ~comment:(Printf.sprintf "call : %s" ty_fncall.fn_name) 
+      @@ Instruction.bl ty_fncall.fn_name
+    in
+
+    let store_instructions =  begin match where with
+    | LocReg reg -> 
+      if Register.cmp_raw_register reg x0 then
+        []
+      else
+        let aligned_reg = Register.align_with ~along:reg x0 in
+        [
+          Line.instruction @@ Instruction.mov ~destination:reg ~source:(`Register aligned_reg)
+        ]
+    | LocAddr address -> 
+      let resized_x0 = Register.resize_type return_type x0 in
+      LineInstruction.str_instr 
+        ~data_size:(Condition_Code.data_size_of_type return_type)
+        ~source:resized_x0
+        address
+    end
+    in
+    
+    register_parameters_instructions @ call_instruction::store_instructions
   | TyRVDiscard _ | TYRVLater _ -> []
  
+let translate_san_statement ~litterals fd = function
+| TySSDeclaration (v, rvalue) ->
+  let location = FrameManager.location_of (v, rvalue.san_type) fd in
+  translate_san_rvalue ~litterals ~where:location fd rvalue
        
-    
+let translate_san_ending ~litterals fd = function
+  | TySE_return typed_atom -> 
+    snd @@ translate_san_atom ~litterals ~target_reg:x0 fd typed_atom
+  | TYSE_If {expr; if_label; else_label} -> 
+    let r14 = Register.r14_sized expr.atom_type in
+    let last_reg, instructions = translate_san_atom ~litterals ~target_reg:r14 fd expr in
+    let cmp_instruction = Line.instruction @@ Instruction.cmp ~operand1:last_reg ~operand2:(`ILitteral 1L) in
+    let jmps = Line.instructions [
+      Instruction.b ~cc:(Condition_Code.EQ) if_label;
+      Instruction.b else_label
+    ]
+    in
+  instructions @ cmp_instruction::jmps
+
+

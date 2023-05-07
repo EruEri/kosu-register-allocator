@@ -125,6 +125,12 @@ module Register = struct
     | s when s = size -> register
     | _ -> { register with size }
 
+  let resize_type san_type register = 
+    match Sizeof.sizeof san_type with
+    | 8 -> { register with size = SReg64 }
+    | _ -> { register with size = SReg32 }
+     
+
   let w0 = {
     register = X0;
     size = SReg32
@@ -168,11 +174,21 @@ module Register = struct
   | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> { register = X14; size = word_regsize}
   | Boolean | Unit -> w14
 
-
-  let according_register raw_register variable = 
-    match Sizeof.sizeof @@ snd variable with
+  let according_register raw_register san_type = 
+    match Sizeof.sizeof san_type with
     | 8 ->  { register = raw_register; size = SReg64 }
     | _ ->  { register = raw_register; size = SReg32 }
+
+  let according_register_variable raw_register variable = 
+    according_register raw_register @@ snd variable
+
+  let align_with ~along register = 
+    {
+      register with size = along.size
+    }
+
+  let cmp_raw_register lhs rhs = 
+    lhs.register = rhs.register
 
   type return_strategy =
   | Indirect_return
@@ -441,6 +457,15 @@ module Instruction = struct
     And {destination; operand1; operand2}
   let orr ~destination ~operand1 ~operand2 = 
     And {destination; operand1; operand2}
+
+  let cmp ~operand1 ~operand2 = 
+    Cmp {operand1; operand2}
+    
+  let b ?cc label = 
+    B {cc; label}
+
+  let bl ?cc label = 
+    Bl { cc; label}
   let is_stp_range n = -512L <= n && n <= 504L
 
   let ret = RET
@@ -668,7 +693,7 @@ module FrameManager = struct
       let node = GreedyColoration.ColoredGraph.find variable colored_graph in
       match node.color with
       | Some color -> 
-        let reg = Location.loc_reg @@ Register.according_register color variable in
+        let reg = Location.loc_reg @@ Register.according_register_variable color variable in
         SanVariableMap.add variable reg acc_map, acc_stack_variable
       | None -> 
         acc_map, variable::acc_stack_variable
@@ -720,7 +745,7 @@ module FrameManager = struct
       |> List.map (fun (variable, register, address) -> 
         str_instr 
           ~data_size:(Condition_Code.data_size_of_variable variable)
-          ~source:(Register.according_register register variable)
+          ~source:(Register.according_register_variable register variable)
           address
       )
       |> List.flatten
