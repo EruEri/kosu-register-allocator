@@ -166,15 +166,25 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
         in
         arith_instructions::str_instructions
     end 
-    | TacBool tac_binop_bool -> begin match tac_binop_bool with
-    | TacOr
-    | TacSup
-    | TacSupEq
-    | TacInf
-    | TacInfEq
-    | TacEqual
-    | TacDiff
-    | TacAnd -> failwith ""
+    | TacBool tac_binop_bool -> begin
+      let cc = Option.get @@ Condition_Code.cc_of_tac_bin tac_binop_bool in
+      let cmp_instruction = Line.instruction @@ Instruction.cmp ~operand1:lreg ~operand2:(`Register rreg) in
+      let reg = where |> Location.reg_opt |> Option.value ~default:w14 in
+      let mov_instructions =
+        Line.instructions [
+          Instruction.cset ~cc ~register:reg;
+          Instruction.andi ~destination:reg ~operand1:reg ~operand2:(`ILitteral 1L)
+        ]
+      in
+      let str_instructions = 
+        where |> Location.address_opt |> Option.map (fun addr -> 
+          LineInstruction.str_instr 
+          ~data_size:(Condition_Code.data_size_of_type rvalue.san_type)
+          ~source:reg
+          addr
+        ) |> Option.value ~default:[]
+        in
+      cmp_instruction::mov_instructions @ str_instructions
     end
   in
   linstructions @ rinstruction @ arith_instructions

@@ -62,6 +62,17 @@ module Condition_Code = struct
     | LE  (** Signed less than or equal *)
     | AL  (** Always*)
 
+    let cc_of_tac_bin ?(is_unsigned = false) =
+      let open SanFrontend.SanAst in
+      function
+      | TacOr | TacAnd -> None
+      | TacEqual -> Some EQ
+      | TacDiff -> Some NE
+      | TacSup -> Some (if is_unsigned then HI else GT)
+      | TacSupEq -> Some (if is_unsigned then CS else GE)
+      | TacInfEq -> Some (if is_unsigned then LS else LE)
+      | TacInf -> Some (if is_unsigned then CC else LT)
+
     let data_size_of_type = function
     | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> None
     | Boolean | Unit -> Some B
@@ -513,13 +524,16 @@ module Instruction = struct
   let cmp ~operand1 ~operand2 = 
     Cmp {operand1; operand2}
 
+  let cset ~cc ~register = 
+    Cset {cc; register}
+
   let b ?cc label = 
     B {cc; label}
 
   let bl ?cc label = 
     Bl { cc; label}
 
-  let selfbinop_of_binop  =
+  let selfbinop_of_binop =
   let open SanFrontend.SanAst in
   function
   | TacAdd -> add_r
@@ -531,6 +545,9 @@ module Instruction = struct
   | TacBitwiseXor -> bitwisexor_r
   | TacShiftLeft -> shiftleft_r
   | TacShiftRight -> shiftright_r
+
+  let boolbinop_of_binop =
+    failwith ""
 
   let is_stp_range n = -512L <= n && n <= 504L
 
