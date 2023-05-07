@@ -219,11 +219,27 @@ module Cfg_Command = struct
     Cmd.v info (cmd_term cfg_main)
 end
 
+let default_outfile = "a.out"
+
 type cmd = {
-  file: string
+  asm: bool;
+  outfile: string;
+  file: string;
+  other_files: string list
 }
 let name = "san"
 let version = "0.0.1"
+
+let target_asm_term =
+  Arg.(value & flag & info [ "S" ] ~doc:"Produce assembly files")
+
+let output_term =
+  Arg.(
+    value & opt string default_outfile
+    & info [ "o" ] ~docv:"FILENAME"
+        ~doc:
+          (Printf.sprintf "write output to <%s>"
+              (String.lowercase_ascii "$(docv)")))
 
 
 let file_term = 
@@ -231,15 +247,23 @@ let file_term =
     Arg.info []
     ~docv:"FILE"
   in
-  Arg.required  ( Arg.pos  0 (Arg.some Arg.non_dir_file) None info) 
+  Arg.required  ( Arg.pos 0 (Arg.some Arg.non_dir_file) None info) 
+
+let other_file_term = 
+  Arg.(
+    value & pos_left 0 file [] & info ~doc:"Pass files to $(b,cc)(1)" ~docv:"FILES" []
+  )
 
 
 let cmd_term run = 
-  let combine file = 
-    run @@ { file }
+  let combine asm outfile file other_files = 
+    run @@ { asm; outfile; file; other_files }
   in
   Term.(const combine
+    $ target_asm_term
+    $ output_term
     $ file_term
+    $ other_file_term
   )
 
 let san_doc = "The minimalist 3 address code compiler"
@@ -250,7 +274,10 @@ let san_man = [
     "San is the compiler of a minimalist 3 address code language";
   `P
     "San exists to more easily test the register allocator of Kosu";
+  `P
+    "San produce the executable by invoking the C compiler";
   `S Manpage.s_see_also;
+  `P "$(b,cc)(1)";
   `P "Repository: https://github.com/EruEri/kosu-register-allocator";
   `P "Repository: https://github.com/EruEri/kosu-lang";
   `S Manpage.s_authors;
@@ -264,11 +291,24 @@ let san_man = [
 
 let san_main cmd = 
   
-  let { file } = cmd in
+  let { asm; outfile; file; other_files } = cmd in
   let san_module = SanFrontend.san_module_parse file in
   let ty_san_module = SanTyped.of_san_module san_module in
-  let () = ignore ty_san_module in
-  ()
+  let module Codegen = SanBackend.Aarch64.Codegen.Make(SanBackend.Aarch64.Implementation.MacOSAarch64AsmSpec) in
+  match asm with
+  | true -> 
+    let outfile = if outfile = default_outfile then
+      Printf.sprintf "%s.s" default_outfile 
+    else
+      outfile
+    in
+    let () = Out_channel.with_open_bin outfile (fun oc -> 
+      Codegen.compile_s ~outfile:oc ty_san_module
+    ) in
+    ()
+  | false ->
+    let () = Codegen.compile ~outname:outfile other_files ty_san_module () in
+    ()
 
 let san =
   let info = Cmd.info ~doc:san_doc ~man:san_man ~version name in

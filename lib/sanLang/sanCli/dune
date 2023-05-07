@@ -20,4 +20,4 @@
  (enabled_if
   (= %{profile} san))
   (modules sanCli)
- (libraries cmdliner sanFrontend sanTyped sanCfg))
+ (libraries cmdliner sanFrontend sanTyped sanCfg sanBackend))

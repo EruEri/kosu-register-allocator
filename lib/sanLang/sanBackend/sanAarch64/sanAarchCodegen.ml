@@ -15,54 +15,33 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module AsmAst = AsmAst
 
-module NamingConvention = NamingConvention
+module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
+  module AsmProgram = Common.AsmAst.Make(SanAarchCore.Line)
+  module Pprint = SanAarchPprint.Make(AsmSpec)
+  module Conv = SanAarchConv.Make(AsmSpec)
 
-module Sizeof = struct
-  
+  let compile_s ~outfile santyped = 
+    let litterals : AsmProgram.litterals = { 
+      str_lit_map = Hashtbl.create 10
+    } in
+    let AsmModule asm_nodes = Conv.translate_san_module ~litterals santyped in
+    asm_nodes |> List.iter (fun node -> 
+      let repr =  Pprint.string_of_asm_node node in
+      Printf.fprintf outfile "%s\n\n" repr
+    )
 
-  let align n b =
-    let m = n mod b in
-    if m = 0 then n else n + b - m
+  let compile_tmp_s ~filename san_typed = 
+    let _litterals : AsmProgram.litterals = { 
+      str_lit_map = Hashtbl.create 10
+    } in
+    let filename, outfile = Filename.open_temp_file filename ".s" in
+    let () = compile_s ~outfile san_typed in
+    let () = close_out outfile in
+    filename
 
-  let align_16 = align 16
-
-
-  let sizeof = function
-  | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> Nativeint.size / 8
-  | Unit | Boolean -> 1
-
-  let alignmentof = sizeof
-
-  let sizeof_tuple san_types = 
-    let size, alignment =  san_types |> List.fold_left (fun (acc_size, acc_align) st -> 
-      let comming_size = sizeof st in
-      let comming_align = alignmentof st in
-
-      let aligned = align acc_size comming_align in
-      let new_align = max acc_align comming_align in
-      aligned + comming_size, new_align
-  ) (0, 1) in
-  align size alignment 
-
-
-  let offset_of_tuple_index index san_types =
-    if index = 0 then 0 else
-  san_types
-    |> List.mapi (fun i v -> (i - 1, v))
-    |> List.fold_left
-        (fun ((acc_size, acc_align, found) as acc) (tindex, st) ->
-          let comming_size = sizeof st in
-          let comming_align = alignmentof st in
-
-          let aligned = align acc_size comming_align in
-          let new_align = max acc_align comming_align in
-
-          if found then acc
-          else if index = tindex then (aligned, new_align, true)
-          else (aligned + comming_size, new_align, found))
-        (0, 1, false)
-    |> function
-    | a, _, _ -> a
+  let compile ~outname files santype () =
+    let tmp_name = compile_tmp_s ~filename:outname santype in
+    let _ = Sys.command @@ Printf.sprintf "cc -o %s %s %s" outname tmp_name (String.concat ", " files) in
+    ()
 end

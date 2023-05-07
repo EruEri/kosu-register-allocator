@@ -15,54 +15,41 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
-module AsmAst = AsmAst
+module MacOSAarch64AsmSpec : SanAarchSpecification.Aarch64AsmSpecification = struct
+  open Printf
 
-module NamingConvention = NamingConvention
+  module MacosNamingSig = struct
+    let main = "_main"
+    let label_prefix = "_"
+  end
 
-module Sizeof = struct
-  
+  module MacosNamingConvention = Common.NamingConvention.Make(MacosNamingSig)
+  include MacosNamingConvention
 
-  let align n b =
-    let m = n mod b in
-    if m = 0 then n else n + b - m
+  type address_load_style = MacOS | Other
 
-  let align_16 = align 16
+  let adrp_style : address_load_style = MacOS
 
+  let function_directives fn_name =
+    [ sprintf ".globl %s" fn_name; ".p2align 4" ]
 
-  let sizeof = function
-  | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> Nativeint.size / 8
-  | Unit | Boolean -> 1
+  let constant_directives const_name = function
+    | `IntVal (_) ->
+        let _align_size = (Nativeint.size / 8) - 1 in
+        [ Printf.sprintf ".globl %s" const_name; sprintf ".p2align %u" 2 ]
+    | `StrVal _ ->
+        [
+          Printf.sprintf ".globl %s" const_name; Printf.sprintf ".p2align %u" 3;
+        ]
 
-  let alignmentof = sizeof
+  let comment_prefix = "#"
 
-  let sizeof_tuple san_types = 
-    let size, alignment =  san_types |> List.fold_left (fun (acc_size, acc_align) st -> 
-      let comming_size = sizeof st in
-      let comming_align = alignmentof st in
+  let string_litteral_section_start =
+    ".section\t__TEXT,__cstring,cstring_literals,"
 
-      let aligned = align acc_size comming_align in
-      let new_align = max acc_align comming_align in
-      aligned + comming_size, new_align
-  ) (0, 1) in
-  align size alignment 
+  let string_litteral_section_end = ".subsections_via_symbols"
+  let string_litteral_directive = ".asciz"
 
-
-  let offset_of_tuple_index index san_types =
-    if index = 0 then 0 else
-  san_types
-    |> List.mapi (fun i v -> (i - 1, v))
-    |> List.fold_left
-        (fun ((acc_size, acc_align, found) as acc) (tindex, st) ->
-          let comming_size = sizeof st in
-          let comming_align = alignmentof st in
-
-          let aligned = align acc_size comming_align in
-          let new_align = max acc_align comming_align in
-
-          if found then acc
-          else if index = tindex then (aligned, new_align, true)
-          else (aligned + comming_size, new_align, found))
-        (0, 1, false)
-    |> function
-    | a, _, _ -> a
+  let label_of_function fn_name = 
+    MacosNamingConvention.label_of_function ~fn_name
 end

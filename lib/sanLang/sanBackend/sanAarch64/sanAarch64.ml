@@ -14,3 +14,7 @@
 (* If not, see <http://www.gnu.org/licenses/>.                                                *)
 (*                                                                                            *)
 (**********************************************************************************************)
+
+module Codegen = SanAarchCodegen
+module Specification = SanAarchSpecification
+module Implementation = SanAarchSpecImpl

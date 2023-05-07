@@ -20,5 +20,5 @@
  (name common)
  (enabled_if
   (= %{profile} san))
-  (modules common asmAst)
+  (modules common asmAst namingConvention)
  (libraries util sanTyped))

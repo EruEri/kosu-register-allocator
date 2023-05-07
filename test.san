@@ -1,17 +1,3 @@
-def add($x: ssize, $y: ssize) ssize:
-    $z = $x + $y;
-    return 10
-end
-
-def factoriel($n: ssize) ssize:
-    $cmp = $n <= 1;
-    if $cmp goto ending
-    goto continue
-ending:
+def main() ssize:
     return 1
-continue:
-    $sub = $n - 1;
-    $res = factoriel( $sub );
-    $res2 = $n * $res;
-    return $res2
 end
