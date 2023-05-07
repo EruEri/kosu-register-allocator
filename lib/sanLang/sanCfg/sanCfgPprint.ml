@@ -20,6 +20,7 @@ open SanCfgAst.SanRegisterAllocator.Basic
 open SanCfgAst.SanRegisterAllocator.Detail
 open SanCfgAst.SanRegisterAllocator.Pprint
 open SanTyped.SanTyPprint
+open Util
 module StringSet = Set.Make(String)
 
 type dot_digraph_node = {
@@ -81,11 +82,6 @@ let escape ~chars s =
     | true -> Printf.bprintf buffer "\\%c" c
   ) in
   buffer |> Buffer.to_bytes |> Bytes.to_string
-
-  let rec combine_safe lhs rhs =
-    match (lhs, rhs) with
-    | [], _ | _, [] -> []
-    | t1 :: q1, t2 :: q2 -> (t1, t2) :: combine_safe q1 q2
 
 let export_colored_graph ~outchan (cfg: Liveness.cfg_liveness_detail) () = 
     let open SanCfgAst in

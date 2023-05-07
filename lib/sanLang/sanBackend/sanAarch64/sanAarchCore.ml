@@ -15,6 +15,8 @@
 (*                                                                                            *)
 (**********************************************************************************************)
 
+module SanVariableMap = SanCfg.SanVariableMap
+open Common
 
 module Immediat = struct
   let mask_6_8bytes = 0xFFFF_0000_0000_0000L
@@ -116,7 +118,15 @@ module Register = struct
     | SReg64 -> x0
     | SReg32 -> w0
 
+  let sp = {
+    register = SP;
+    size = SReg64
+  }
 
+  let according_register raw_register variable = 
+    match Sizeof.sizeof @@ snd variable with
+    | 8 ->  { register = raw_register; size = SReg64 }
+    | _ ->  { register = raw_register; size = SReg32 }
 
   type return_strategy =
   | Indirect_return
@@ -171,6 +181,13 @@ module Register = struct
     X5;
   ]
 
+  let available_register = [
+    X9;
+    X10;
+    X11;
+    X12
+  ]
+
   let does_return_hold_in_register _ = true
 
   let indirect_return_register = X8
@@ -200,6 +217,9 @@ module Location = struct
   type location = 
   | LocReg of Register.register
   | LocAddr of address
+
+  let loc_reg r = LocReg r
+  let loc_addr a = LocAddr a
 
   let create_adress ?(offset = 0L) base = { base; offset = `ILitteral offset }
 
@@ -326,5 +346,48 @@ end
 module AsmProgram = Common.AsmAst.Make(Line)
 
 module FrameManager = struct
+  type description = {
+    local_space: int;
+    variable_map: Location.location SanCfg.SanVariableMap.t
+  }
+
+  let frame_descriptor (function_decl: SanTyped.SanTyAst.ty_san_function) = 
+    let cfg = SanCfg.SanCfgConv.liveness_of_san_tyfunction function_decl in
+    let colored_graph = GreedyColoration.coloration 
+      ~parameters:(Util.combine_safe function_decl.parameters Register.arguments_register)
+      ~available_color:Register.available_register cfg
+  in
+
+  let base_address = Location.create_adress ~offset:0L Register.sp in
+
+  let variable_map, stack_variable = function_decl.locals |> List.sort (fun (_, lhs) (_, rhs) -> 
+    let lsize = Sizeof.sizeof lhs in
+    let rsize = Sizeof.sizeof rhs in
+    compare rsize lsize
+    ) |> List.fold_left (fun (acc_map, acc_stack_variable) variable -> 
+      let open GreedyColoration.ColoredGraph in
+      let node = GreedyColoration.ColoredGraph.find variable colored_graph in
+      match node.color with
+      | Some color -> 
+        let reg = Location.loc_reg @@ Register.according_register color variable in
+        SanVariableMap.add variable reg acc_map, acc_stack_variable
+      | None -> 
+        acc_map, variable::acc_stack_variable
+  )  (SanVariableMap.empty, []) in
+
+  let stack_variable_types = List.map snd stack_variable in
+
+  let variable_map = stack_variable |> List.mapi Util.couple |> List.fold_left (fun (acc_address, acc_map) (index, variable) ->
+    let offset = Sizeof.offset_of_tuple_index index stack_variable_types in
+    let address = Location.increment_adress (Int64.of_int offset) base_address in
+    let loc_adrress =  Location.loc_addr address in
+    address, SanVariableMap.add variable loc_adrress acc_map
+  ) (base_address, variable_map) |> snd in
+
+  let local_space = Sizeof.sizeof_tuple stack_variable_types in
+  {
+    local_space;
+    variable_map
+  }
 
 end

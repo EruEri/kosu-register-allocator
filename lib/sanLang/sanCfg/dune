@@ -20,4 +20,4 @@
  (enabled_if
   (= %{profile} san))
   (modules sanCfg sanCfgConv sanCfgAst sanCfgPprint sanCfgRegister)
- (libraries kosuRegisterAllocator sanTyped sanFrontend))
+ (libraries kosuRegisterAllocator sanTyped sanFrontend util))
