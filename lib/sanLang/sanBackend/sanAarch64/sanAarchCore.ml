@@ -460,7 +460,7 @@ module Instruction = struct
 
   let cmp ~operand1 ~operand2 = 
     Cmp {operand1; operand2}
-    
+
   let b ?cc label = 
     B {cc; label}
 
@@ -486,7 +486,7 @@ module Line = struct
 
   let comment message = AsmLine (Comment message, None)
 
-  let label ?comment l = AsmLine (Instruction l, comment)
+  let label ?comment l = AsmLine (Label l, comment)
 
   let directive ?comment d  = AsmLine (Instruction d, comment)
 end

@@ -58,7 +58,7 @@ type ty_san_ending =
   | TYSE_If of { expr : typed_atom; if_label : string ; else_label : string }
 
 type ty_san_basic_block = {
-    label : string ;
+    label : string;
     statements : ty_san_statement list;
     ending : ty_san_ending option;
 }

@@ -219,3 +219,22 @@ let translate_san_ending ~litterals fd = function
   instructions @ cmp_instruction::jmps
 
 
+let translate_san_block ~litterals fd block = 
+  let label_line = Line.label block.label in
+  let statements_instructions = 
+    block.statements
+    |> List.map (translate_san_statement ~litterals fd)
+    |> List.flatten
+  in
+  let ending_instructions = 
+    block.ending
+    |> Option.map (translate_san_ending ~litterals fd)
+    |> Option.value ~default:[]
+  in
+  label_line::statements_instructions @ ending_instructions
+
+let translate_san_function litterals fd san_function = 
+  san_function.san_basic_blocks
+  |> List.map (translate_san_block ~litterals fd)
+  |> List.flatten
+  |> List.cons (Line.label san_function.fn_name)
