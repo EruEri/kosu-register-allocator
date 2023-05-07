@@ -61,6 +61,10 @@ module Condition_Code = struct
     | GT  (** Signed greather than *)
     | LE  (** Signed less than or equal *)
     | AL  (** Always*)
+
+    let data_size_of_variable variable = match snd variable with
+    | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> None
+    | Boolean | Unit -> Some B
 end
 
 module Register = struct
@@ -110,6 +114,21 @@ module Register = struct
   }
   let x0 = {
     register = X0;
+    size = SReg64
+  }
+
+  let x15 = {
+    register = X15;
+    size = SReg64
+  }
+
+  let x29 = {
+    register = X29;
+    size = SReg64
+  }
+
+  let x30 = {
+    register = X30;
     size = SReg64
   }
 
@@ -193,6 +212,18 @@ module Register = struct
   let indirect_return_register = X8
 
   let return_strategy _ = Simple_return X0
+
+  let str_ldr_offset_range reg n =
+    if n < 0L then -256L < n
+    else
+      match reg.size with
+      | SReg32 -> n < 255L || (Int64.unsigned_rem n 4L = 0L && n < 16380L)
+      | SReg64 -> n < 255L || (Int64.unsigned_rem n 8L = 0L && n < 32760L)
+  
+  let is_offset_too_far reg address =
+    match address with
+    | `ILitteral i when not @@ str_ldr_offset_range reg i -> true
+    | `ILitteral _ | `Register _ -> false
 end
 
 module Operande = struct
@@ -258,6 +289,9 @@ module Instruction = struct
   | Neg of { destination : Register.register; source : Register.register }
   | Add of { destination : Register.register; operand1 : Register.register;
     (* Int12 litteral oprand*) operand2 : src; offset : bool }
+  | Sub of { destination : Register.register; operand1 : Register.register;
+      (* Int12 litteral oprand*) operand2 : src;
+    }
   | Mul of {
       destination : Register.register;
       operand1 : Register.register;
@@ -313,8 +347,20 @@ module Instruction = struct
       operand1 : Register.register;
       operand2 : src;
     }
-| Str of { data_size : data_size option; source : Register.register;
-    address : address; address_mode : adress_mode;
+  | Ldr of {
+    data_size : data_size option;
+    destination : Register.register;
+    address_src : address;
+    address_mode : adress_mode;
+  }
+  | Ldp of {
+    x1 : Register.register;
+    x2 : Register.register;
+    address : address;
+    address_mode : adress_mode;
+  }
+  | Str of { data_size : data_size option; source : Register.register;
+      address : address; address_mode : adress_mode;
     }
   | Stp of { x1 : Register.register; x2 : Register.register; address : address;
       adress_mode : adress_mode;
@@ -323,6 +369,26 @@ module Instruction = struct
   | B of { cc : condition_code option; label : string }
   | Bl of { cc : condition_code option; label : string }
   | RET
+
+  let sub ~destination ~operand1 ~operand2 = 
+    Sub {destination; operand1; operand2}
+
+  let sub_r ~operand2 = sub ~operand2:(`Register operand2) 
+
+  let add ?(offset = false) ~destination ~operand1 operand2 = 
+    Add {destination; operand1; operand2; offset}
+
+  let add_r ?(offset = false) register = add ~offset (`Register register)
+
+  let ldr ~data_size ~destination ~address_src ~address_mode = 
+    Ldr {data_size; destination; address_src; address_mode}
+
+  let ldp ~x1 ~x2 ~address ~address_mode = 
+    Ldp {x1; x2; address; address_mode}
+
+  let is_stp_range n = -512L <= n && n <= 504L
+
+  let ret = RET
 end
 
 module Line = struct
@@ -336,11 +402,173 @@ module Line = struct
 
   let instruction ?comment instr = AsmLine (Instruction instr, comment)
 
+  let instructions instrs = instrs |> List.map instruction
+
   let comment message = AsmLine (Comment message, None)
 
   let label ?comment l = AsmLine (Instruction l, comment)
 
   let directive ?comment d  = AsmLine (Instruction d, comment)
+end
+
+module LineInstruction = struct
+  open Location
+  open Register
+  open Instruction
+  open Line
+
+  let mov_integer register n =
+    let open Immediat in
+    if is_direct_immediat n then
+    instruction
+        (Mov { destination = register; source = `ILitteral n })
+      :: []
+    else
+      let int64, int48, int32, int16 = split n in
+      let base =
+        [
+          instruction
+            (Mov { destination = register; source = `ILitteral int16 });
+        ]
+      in
+      ( ( base |> fun l ->
+          if int32 = 0L then l
+          else
+            l
+            @ [
+              instruction
+                  (Movk
+                     {
+                       destination = register;
+                       operand = `ILitteral int32;
+                       shift = Some SH16;
+                     });
+              ] )
+      |> fun l ->
+        if int48 = 0L then l
+        else
+          l
+          @ [
+            instruction
+                (Movk
+                   {
+                     destination = register;
+                     operand = `ILitteral int48;
+                     shift = Some SH32;
+                   });
+            ] )
+      |> fun l ->
+      if int64 = 0L then l
+      else
+        l
+        @ [
+          instruction
+              (Movk
+                 {
+                   destination = register;
+                   operand = `ILitteral int32;
+                   shift = Some SH48;
+                 });
+          ]
+
+  let prologue_epilogue_stack_size framesize =
+    if is_stp_range framesize then
+      ([], { base = sp; offset = `ILitteral framesize })
+    else
+      ( mov_integer x15 framesize
+        @ (instructions [
+            sub ~destination:sp ~operand1:sp ~operand2:(`ILitteral (Int64.add 16L framesize));
+            add_r ~destination:x15 ~operand1:sp x15
+          ]),
+        { base = x15; offset = `ILitteral 0L } )
+  let str_instr ?(mode = Immediat) ~data_size ~source address =
+    match address.offset with
+    | `ILitteral i when not @@ str_ldr_offset_range source i ->
+        let mov = mov_integer x15 i in
+        let address = { base = address.base; offset = `Register x15 } in
+        let str =
+          [
+            instruction @@ Str { data_size; source; address; address_mode = mode };
+          ]
+        in
+        mov @ str
+    | `Register _ | `ILitteral _ ->
+        [
+          instruction
+          @@ Str { data_size; source; address = address; address_mode = mode };
+        ]
+
+    let ldr_instr ?(mode = Immediat) ~data_size ~destination address =
+      match address.offset with
+      | `ILitteral i when not @@ str_ldr_offset_range destination i ->
+          let mov = mov_integer x15 i in
+          let address = { base = address.base; offset = `Register x15 } in
+          let str =
+            [
+              instruction
+              @@ Ldr
+                    {
+                      data_size;
+                      destination;
+                      address_src = address;
+                      address_mode = mode;
+                    };
+            ]
+          in
+          mov @ str
+      | `Register _ | `ILitteral _ ->
+          [
+            instruction
+            @@ Ldr
+                  {
+                    data_size;
+                    destination;
+                    address_src = address;
+                    address_mode = mode;
+                  };
+          ]
+
+  let stp_inst ~vframe =
+    if is_stp_range vframe then
+      let address = { base = sp; offset = `ILitteral vframe } in
+      [
+        instruction
+        @@ Stp { x1 = x29; x2 = x30; address; adress_mode = Immediat };
+      ]
+    else
+      let x29_address = create_adress ~offset:(Int64.add 8L vframe) sp in
+      let x30_address = create_adress ~offset:vframe sp in
+      instructions [
+         Str
+        {
+          data_size = None;
+          source = x29;
+          address = x29_address;
+          address_mode = Immediat;
+        };
+        Str
+        {
+          data_size = None;
+          source = x30;
+          address = x30_address;
+          address_mode = Immediat;
+        };
+      ]
+
+  let ldp_instr ~vframe =
+    if is_stp_range vframe then
+      let address = { base = sp; offset = `ILitteral vframe } in
+      [
+        instruction
+        @@ ldp ~x1:x29 ~x2:x30 ~address ~address_mode:Immediat;
+      ]
+    else
+      let x29_address = create_adress ~offset:(Int64.add 8L vframe) sp in
+      let x30_address = create_adress ~offset:vframe sp in
+      instructions [
+        ldr ~data_size:None ~destination:x29 ~address_src:x29_address ~address_mode:Immediat;
+        ldr ~data_size:None ~destination:x30 ~address_src:x30_address ~address_mode:Immediat
+      ]
 end
 
 module AsmProgram = Common.AsmAst.Make(Line)
@@ -351,10 +579,19 @@ module FrameManager = struct
     variable_map: Location.location SanCfg.SanVariableMap.t
   }
 
+  let location_of variable fd = 
+    match SanVariableMap.find_opt variable fd.variable_map with
+    | None -> Printf.sprintf "location of: %s failed" ("") |> failwith
+    | Some loc -> loc
+
   let frame_descriptor (function_decl: SanTyped.SanTyAst.ty_san_function) = 
+    let parameter_count = List.length Register.arguments_register in
+    let register_parameters, stack_parameters = function_decl.parameters |> List.mapi Util.couple |> List.partition_map (fun (index, variable) ->
+      if index < parameter_count then Either.left variable else Either.right variable
+    ) in
     let cfg = SanCfg.SanCfgConv.liveness_of_san_tyfunction function_decl in
     let colored_graph = GreedyColoration.coloration 
-      ~parameters:(Util.combine_safe function_decl.parameters Register.arguments_register)
+      ~parameters:(Util.combine_safe register_parameters Register.arguments_register)
       ~available_color:Register.available_register cfg
   in
 
@@ -389,5 +626,58 @@ module FrameManager = struct
     local_space;
     variable_map
   }
+
+  let prologue (function_decl: SanTyped.SanTyAst.ty_san_function) fd =
+    let open LineInstruction in
+    let open Instruction in
+    let open Register in
+    let open Line in
+    let open Location in
+
+    let stack_sub_size = Sizeof.align_16 (16 + fd.local_space) in
+    let variable_frame_size = ( - ) stack_sub_size 16  in
+    let base = stp_inst ~vframe:(Int64.of_int variable_frame_size) in
+    let stack_sub_line = instruction @@ sub ~destination:sp ~operand1:sp ~operand2:(`ILitteral (Int64.of_int stack_sub_size)) in
+    let alignx29_line =
+    instruction @@ add ~destination:x29 ~operand1:sp (`ILitteral (Int64.of_int variable_frame_size))
+    in
+
+    let parameter_count = List.length Register.arguments_register in
+    let register_parameters, _stack_parameters = function_decl.parameters |> List.mapi Util.couple |> List.partition_map (fun (index, variable) ->
+      if index < parameter_count then Either.left variable else Either.right variable
+    ) in
+
+    let store_parameters_value = 
+      register_parameters
+      |> Util.combine_safe Register.arguments_register
+      |> List.filter_map (fun (register, variable) -> 
+        match location_of variable fd with
+        | LocAddr address -> Some (variable, register, address)
+        | LocReg _ -> None
+      )
+      |> List.map (fun (variable, register, address) -> 
+        str_instr 
+          ~data_size:(Condition_Code.data_size_of_variable variable)
+          ~source:(Register.according_register register variable)
+          address
+      )
+      |> List.flatten
+      in
+      stack_sub_line :: base @ alignx29_line::store_parameters_value
+    
+
+  let epilogue fd = 
+    let open Instruction in
+    let open Register in
+    let open Line in
+    let stack_space = Sizeof.align_16 (( + ) 16 fd.local_space) in
+    let vframe = Int64.of_int @@ ( - ) stack_space 16 in
+    let base = LineInstruction.ldp_instr ~vframe in
+    let stack_add =
+      instruction @@ add ~destination:sp ~operand1:sp (`ILitteral (Int64.of_int stack_space))
+    in
+    let return = instruction ret in
+
+    base @ [ stack_add; return ]
 
 end

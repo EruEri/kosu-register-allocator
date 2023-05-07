@@ -24,6 +24,8 @@ module Sizeof = struct
     let m = n mod b in
     if m = 0 then n else n + b - m
 
+  let align_16 = align 16
+
 
   let sizeof = function
   | (Ssize: SanTyped.SanTyAst.san_type) | Stringl -> Nativeint.size / 8
