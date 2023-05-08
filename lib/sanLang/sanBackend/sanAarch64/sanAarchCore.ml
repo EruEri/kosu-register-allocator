@@ -546,9 +546,6 @@ module Instruction = struct
   | TacShiftLeft -> shiftleft_r
   | TacShiftRight -> shiftright_r
 
-  let boolbinop_of_binop =
-    failwith ""
-
   let is_stp_range n = -512L <= n && n <= 504L
 
   let ret = RET

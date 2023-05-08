@@ -317,4 +317,6 @@ let san =
 
 
 
-let eval () = san |> Cmd.eval ~catch:true
+let eval () = 
+  let () = Printexc.print_backtrace stderr in
+  san |> Cmd.eval ~catch:true
