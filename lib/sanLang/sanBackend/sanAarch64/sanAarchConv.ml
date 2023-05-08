@@ -303,7 +303,10 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
     let fd = FrameManager.frame_descriptor san_function in
     let prologue = FrameManager.prologue san_function fd in
     let asm_body = san_function.san_basic_blocks
-    |> List.map (translate_san_block ~cancel:true ~litterals fd)
+    |> List.mapi ( fun i block -> 
+      let cancel = i = 0 in
+      translate_san_block ~cancel ~litterals fd block
+      )
     |> List.flatten
     |> List.append prologue
     in

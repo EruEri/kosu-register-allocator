@@ -42,7 +42,7 @@ module MacOSAarch64AsmSpec : SanAarchSpecification.Aarch64AsmSpecification = str
           Printf.sprintf ".globl %s" const_name; Printf.sprintf ".p2align %u" 3;
         ]
 
-  let comment_prefix = "#"
+  let comment_prefix = ";"
 
   let string_litteral_section_start =
     ".section\t__TEXT,__cstring,cstring_literals,"

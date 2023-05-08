@@ -251,7 +251,7 @@ let file_term =
 
 let other_file_term = 
   Arg.(
-    value & pos_left 0 file [] & info ~doc:"Pass files to $(b,cc)(1)" ~docv:"FILES" []
+    value & pos_right 0 file [] & info ~doc:"Pass files to $(b,cc)(1)" ~docv:"FILES" []
   )
 
 

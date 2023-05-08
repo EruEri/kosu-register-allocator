@@ -5,3 +5,6 @@ san
 *.dot
 *.png
 *.s
+main
+*.c
+*.kosu

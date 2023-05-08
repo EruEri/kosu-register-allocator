@@ -1,15 +1,15 @@
 def add($x: ssize, $y: ssize) ssize:
     $z = $x + $y;
-    return 10
+    return $z
 end
 
 def factoriel($n: ssize) ssize:
     $cmp = $n <= 1;
-    if $cmp goto ending
-    goto continue
-ending:
+    if $cmp goto Lending
+    goto Lcontinue
+Lending:
     return 1
-continue:
+Lcontinue:
     $sub = $n - 1;
     $res = factoriel( $sub );
     $res2 = $n * $res;
@@ -17,5 +17,6 @@ continue:
 end
 
 def main() ssize:
-    return 0
+    $n = factoriel(5);
+    return $n
 end
