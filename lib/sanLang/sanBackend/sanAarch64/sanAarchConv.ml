@@ -147,9 +147,9 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
     | None -> translate_san_atom ~litterals ~target_reg:x13 fd ty_binary.tylhs
   in
   let rreg, rinstruction = 
-    match location_of_atom fd ty_binary.tylhs with
+    match location_of_atom fd ty_binary.tyrhs with
     | Some reg -> reg, []
-    | None -> translate_san_atom ~litterals ~target_reg:x14 fd ty_binary.tylhs
+    | None -> translate_san_atom ~litterals ~target_reg:x14 fd ty_binary.tyrhs
   in
   let open SanFrontend.SanAst in
    let arith_instructions = match ty_binary.binop with
