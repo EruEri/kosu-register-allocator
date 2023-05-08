@@ -80,6 +80,14 @@ let arguments_register = [
     R7
   ]
 
+let available_register = [
+  R8;
+  R9;
+  R10;
+  R11;
+  R12
+]
+
 let color_map = [
     (R0, "aqua");
     (R1, "red");
@@ -92,7 +100,8 @@ let color_map = [
     (R8, "hotpink");
     (R9, "indigo");
     (R10, "magenta");
-    (R11, "purple")
+    (R11, "purple");
+    (R12, "cyan")
   ]
 
 let does_return_hold_in_register _ = true
