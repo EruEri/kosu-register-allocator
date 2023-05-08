@@ -935,7 +935,7 @@ module Make (CfgS : CfgS): S
       let are_all_parameters = conflicts |> TypedIdentifierSet.for_all (fun iv ->
         VariableAbiMap.mem iv map
       ) in
-      let () = Printf.printf "has conflict = %b\n\n%!" are_all_parameters in
+      (* let () = Printf.printf "has conflict = %b\n\n%!" are_all_parameters in *)
 
       match are_all_parameters with
       | false -> map

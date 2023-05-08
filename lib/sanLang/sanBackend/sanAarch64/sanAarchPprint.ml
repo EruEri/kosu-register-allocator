@@ -245,12 +245,12 @@ let string_of_asm_line line =
   let comment_style_content = comment |> Option.map (Printf.sprintf "%s %s" AsmSpec.comment_prefix) |> Option.value ~default:"" in
 
   let line = match line with
-  | Comment s -> sprintf "%s %s %s" AsmSpec.comment_prefix s comment_content
-  | Instruction i -> sprintf "%s %s" (string_of_instruction i) comment_style_content
+  | Comment s -> sprintf "\t%s %s %s" AsmSpec.comment_prefix s comment_content
+  | Instruction i -> sprintf "\t%s %s" (string_of_instruction i) comment_style_content
   | Label l -> sprintf "%s: %s" (l) comment_style_content
-  | Directive d -> sprintf ".%s %s" d comment_style_content
+  | Directive d -> sprintf "\t.%s %s" d comment_style_content
   in
-  sprintf "\t%s" line
+  sprintf "%s" line
 
 let string_of_asm_function { asm_name; asm_body } =
   sprintf "\t%s\n%s:\n%s"

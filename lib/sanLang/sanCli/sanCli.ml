@@ -219,52 +219,102 @@ module Cfg_Command = struct
     Cmd.v info (cmd_term cfg_main)
 end
 
-let default_outfile = "a.out"
+module Compile_Cmd = struct
+  let default_outfile = "a.out"
 
-type cmd = {
-  asm: bool;
-  outfile: string;
-  file: string;
-  other_files: string list
-}
+  let name = "compile"
+
+  type cmd = {
+    asm: bool;
+    outfile: string;
+    file: string;
+    other_files: string list
+  }
+
+
+  let target_asm_term =
+    Arg.(value & flag & info [ "S" ] ~doc:"Produce assembly files")
+
+  let output_term =
+    Arg.(
+      value & opt string default_outfile
+      & info [ "o" ] ~docv:"FILENAME"
+          ~doc:
+            (Printf.sprintf "write output to <%s>"
+                (String.lowercase_ascii "$(docv)")))
+
+
+  let file_term = 
+    let info = 
+      Arg.info []
+      ~docv:"FILE"
+    in
+    Arg.required  ( Arg.pos 0 (Arg.some Arg.non_dir_file) None info) 
+
+  let other_file_term = 
+    Arg.(
+      value & pos_right 0 file [] & info ~doc:"Pass files to $(b,cc)(1)" ~docv:"FILES" []
+    )
+
+
+  let cmd_term run = 
+    let combine asm outfile file other_files = 
+      run @@ { asm; outfile; file; other_files }
+    in
+    Term.(const combine
+      $ target_asm_term
+      $ output_term
+      $ file_term
+      $ other_file_term
+    )
+
+  let compile = "Compile san file"
+
+  let compile_doc = "Compile san programs"
+
+  let compile_man = [
+    `S Manpage.s_description;
+    `P 
+      "san-compile allows you to compile san program into executable or assembly files";
+    `P
+      "san-compile use the C compilateur to generate the executable";
+    `S Manpage.s_see_also;
+    `Noblank;
+    `P "$(b,cc)(1)";
+    `Noblank;
+  ]
+
+  let compile_main cmd =
+  let { asm; outfile; file; other_files } = cmd in
+  let san_module = SanFrontend.san_module_parse file in
+  let ty_san_module = SanTyped.of_san_module san_module in
+  let module Codegen = SanBackend.Aarch64.Codegen.Make(SanBackend.Aarch64.Implementation.MacOSAarch64AsmSpec) in
+  match asm with
+  | true -> 
+    let outfile = if outfile = default_outfile then
+      Printf.sprintf "%s.s" default_outfile 
+    else
+      outfile
+    in
+    let () = Out_channel.with_open_bin outfile (fun oc -> 
+      Codegen.compile_s ~outfile:oc ty_san_module
+    ) in
+    ()
+  | false ->
+    let () = Codegen.compile ~outname:outfile other_files ty_san_module () in
+    ()
+
+  let compile =    
+     let info = Cmd.info ~doc:compile_doc ~man:compile_man name in
+  Cmd.v info (cmd_term compile_main)
+
+
+
+end
+
+
 let name = "san"
 let version = "0.0.1"
-
-let target_asm_term =
-  Arg.(value & flag & info [ "S" ] ~doc:"Produce assembly files")
-
-let output_term =
-  Arg.(
-    value & opt string default_outfile
-    & info [ "o" ] ~docv:"FILENAME"
-        ~doc:
-          (Printf.sprintf "write output to <%s>"
-              (String.lowercase_ascii "$(docv)")))
-
-
-let file_term = 
-  let info = 
-    Arg.info []
-    ~docv:"FILE"
-  in
-  Arg.required  ( Arg.pos 0 (Arg.some Arg.non_dir_file) None info) 
-
-let other_file_term = 
-  Arg.(
-    value & pos_right 0 file [] & info ~doc:"Pass files to $(b,cc)(1)" ~docv:"FILES" []
-  )
-
-
-let cmd_term run = 
-  let combine asm outfile file other_files = 
-    run @@ { asm; outfile; file; other_files }
-  in
-  Term.(const combine
-    $ target_asm_term
-    $ output_term
-    $ file_term
-    $ other_file_term
-  )
 
 let san_doc = "The minimalist 3 address code compiler"
 
@@ -289,34 +339,14 @@ let san_man = [
 ]
 
 
-let san_main cmd = 
   
-  let { asm; outfile; file; other_files } = cmd in
-  let san_module = SanFrontend.san_module_parse file in
-  let ty_san_module = SanTyped.of_san_module san_module in
-  let module Codegen = SanBackend.Aarch64.Codegen.Make(SanBackend.Aarch64.Implementation.MacOSAarch64AsmSpec) in
-  match asm with
-  | true -> 
-    let outfile = if outfile = default_outfile then
-      Printf.sprintf "%s.s" default_outfile 
-    else
-      outfile
-    in
-    let () = Out_channel.with_open_bin outfile (fun oc -> 
-      Codegen.compile_s ~outfile:oc ty_san_module
-    ) in
-    ()
-  | false ->
-    let () = Codegen.compile ~outname:outfile other_files ty_san_module () in
-    ()
 
 let san =
   let info = Cmd.info ~doc:san_doc ~man:san_man ~version name in
-  let default = cmd_term san_main in
-  Cmd.group ~default info [Cfg_Command.cfg]
+  Cmd.group info [Cfg_Command.cfg; Compile_Cmd.compile]
 
 
 
 let eval () = 
-  let () = Printexc.print_backtrace stderr in
+  (* let () = Printexc.print_backtrace stderr in *)
   san |> Cmd.eval ~catch:true
