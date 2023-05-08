@@ -1,6 +1,6 @@
-# **Kosu Register allocator**
+# **Kosu-register-allocator**
 
-This librairy is supposed to become the register allocator of [Kosu]("https://github.com/EruEri/kosu-lang").
+This library is supposed to become the register allocator of [Kosu](https://github.com/EruEri/kosu-lang).
 
 The allocation and the graph coloration is based on the **Kempe**'s algorithm
 
@@ -20,10 +20,10 @@ To build the library only:
 ```
 $ dune build
 ```
-is enougth
+is enough
 
 ## **San**
-``Kosu Register allocator`` embed also a minimalist 3 address-code language, ```san```. By default, the library is built without ```san``` be can be compiled with:
+``Kosu-register-allocator`` embed also a minimalist 3 address-code language, ```san```. By default, the library is built without ```san``` be can be compiled with:
 ```
 $ dune build --profile san
 ``` 
@@ -41,10 +41,11 @@ You will also need to install the following opam packages:
     - Used to generate executable or assmebly files
 
 ## Disclaimer
-- I have done what I understood of the register allocation algorithm so I'm pretty sure that aren't the optimal or even without errors 
+- I did what I understood of the register allocation algorithm so I'm pretty sure that aren't the optimal or even without errors 
+- ```san``` currenlty only compile for Mac M1
 
 ## **License**
-- **Kosu Register allocator** is distribued under the GPL-3.0 or LGPL-3.0
+- **Kosu-register-allocator** is distribued under the GPL-3.0 or LGPL-3.0
 - **San** is distribued under the GPL-3.0 
 
 
