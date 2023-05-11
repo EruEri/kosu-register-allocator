@@ -66,7 +66,7 @@ type ty_san_basic_block = {
 type ty_san_function = {
   fn_name : string;
   parameters : (string * san_type) list;
-  return_type : san_type ;
+  return_type : san_type;
   san_basic_blocks : ty_san_basic_block list;
   locals: (string * san_type) list
 }

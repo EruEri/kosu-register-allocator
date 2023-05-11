@@ -23,7 +23,7 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
 
   let compile_s ~outfile santyped = 
     let litterals : AsmProgram.litterals = { 
-      str_lit_map = Hashtbl.create 10
+      str_lit_map = SanTyped.collect_string_litteral_module santyped ()
     } in
     let AsmModule asm_nodes = Conv.translate_san_module ~litterals santyped in
     asm_nodes |> List.iter (fun node -> 
@@ -32,9 +32,6 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
     )
 
   let compile_tmp_s ~filename san_typed = 
-    let _litterals : AsmProgram.litterals = { 
-      str_lit_map = Hashtbl.create 10
-    } in
     let filename, outfile = Filename.open_temp_file filename ".s" in
     let () = compile_s ~outfile san_typed in
     let () = close_out outfile in

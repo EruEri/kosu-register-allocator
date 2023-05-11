@@ -1,3 +1,5 @@
+external puts(stringl) s32;
+
 def add($x: ssize, $y: ssize) ssize:
     $z = $x + $y;
     return $z
@@ -14,9 +16,4 @@ Lcontinue:
     $res = factoriel( $sub );
     $res2 = $n * $res;
     return $res2
-end
-
-def main() ssize:
-    $n = factoriel(5);
-    return $n
 end
