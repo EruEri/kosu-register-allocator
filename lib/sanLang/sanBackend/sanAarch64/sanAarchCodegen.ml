@@ -22,14 +22,29 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
   module Conv = SanAarchConv.Make(AsmSpec)
 
   let compile_s ~outfile santyped = 
+    let open Util in
     let litterals : AsmProgram.litterals = { 
       str_lit_map = SanTyped.collect_string_litteral_module santyped ()
     } in
     let AsmModule asm_nodes = Conv.translate_san_module ~litterals santyped in
-    asm_nodes |> List.iter (fun node -> 
+    let () = asm_nodes |> List.iter (fun node -> 
       let repr =  Pprint.string_of_asm_node node in
       Printf.fprintf outfile "%s\n\n" repr
     )
+    in
+
+    let () = if Hashtbl.length litterals.str_lit_map <> 0 then 
+      let () = Printf.fprintf outfile "\t%s\n" AsmSpec.string_litteral_section_start in
+      let () = litterals.str_lit_map |> Hashtbl.iter (fun content (StrLab label) -> 
+        Printf.fprintf outfile "\t%s:\n\t%s \"%s\"\n" 
+          label
+          AsmSpec.string_litteral_directive
+          content
+      ) in
+      let () = Printf.fprintf outfile "%s" AsmSpec.string_litteral_section_end in
+      ()
+    in
+    ()
 
   let compile_tmp_s ~filename san_typed = 
     let filename, outfile = Filename.open_temp_file filename ".s" in
