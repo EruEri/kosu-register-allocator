@@ -773,6 +773,7 @@ module FrameManager = struct
       let node = GreedyColoration.ColoredGraph.find variable colored_graph in
       match node.color with
       | Some color -> 
+        (* let () = Printf.printf "%s : %d\n" (fst variable) (Obj.magic color) in *)
         let reg = Location.loc_reg @@ Register.according_register_variable color variable in
         SanVariableMap.add variable reg acc_map, acc_stack_variable
       | None -> 

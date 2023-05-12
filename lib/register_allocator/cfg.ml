@@ -941,9 +941,15 @@ module Make (CfgS : CfgS): S
       | false -> map
       | true -> 
         VariableAbiMap.add variable color @@ TypedIdentifierSet.fold (fun iv inner_acc_map -> 
+          (* let () = Printf.printf "decolor : variable = %s\n%!" (CfgS.repr iv) in *)
           VariableAbiMap.remove iv inner_acc_map
         ) nodes map 
      
+    let does_live_in_same_moment v1 v2 infer_graph = 
+      let open Inference_Graph in
+      let edges = IG.egde_of v1 infer_graph in
+      TypedIdentifierSet.mem v2 edges
+
 
     let base_coloration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list)
         ~available_color (cfg : Liveness.cfg_liveness_detail) =
@@ -956,14 +962,23 @@ module Make (CfgS : CfgS): S
       let parameters_functions = 
         constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements 
         |> List.map Constraint.ParameterSet.elements |> List.flatten |> List.fold_left (fun acc_map (variable, index) ->
-          (* let () = Printf.printf "variable = %s: index = %d\n%!" (CfgS.repr variable) index in *)
           match VariableAbiMap.find_opt variable acc_map with
           | None -> begin match List.nth_opt ABI.arguments_register index with
             | None -> acc_map
             | Some color -> 
               try_color base_graph variable color acc_map
           end
-          | Some _ -> VariableAbiMap.remove variable acc_map
+          | Some color -> 
+            let index_color = ABI.arguments_register |> List.mapi Util.couple |>  List.find_map (fun (index, reg) -> 
+              if ABI.compare reg color = 0 then
+                Some index
+              else 
+                None
+            ) |> Option.get in
+            if index = index_color then acc_map 
+            else
+            (* let () = Printf.printf "decolor : variable = %s: reg = r%d\n%!" (CfgS.repr variable) index in *)
+            VariableAbiMap.remove variable acc_map
 
         ) map 
         in
@@ -980,7 +995,7 @@ module Make (CfgS : CfgS): S
       let colored_graph =
         ColoredGraph.of_graph ~precolored:precolored base_graph
       in
-      ColoredGraph.color_graph available_color colored_graph
+      ColoredGraph.color_graph ~immuable:(List.map fst parameters) available_color colored_graph
 
       
 

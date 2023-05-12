@@ -49,8 +49,8 @@ module Make(AsmSpec: SanAarchSpecification.Aarch64AsmSpecification) = struct
           target_reg, []
         else
           target_reg, [
-            Line.instruction ~comment:(Printf.sprintf "src: , dst") @@
-            Instruction.mov ~destination:target_reg ~source: (`Register (Register.resize target_reg.size reg))
+            Line.instruction ~comment:(Printf.sprintf "src: %s, dst %s" (Pp.string_of_register reg) (Pp.string_of_register target_reg)) @@
+            Instruction.mov ~destination:target_reg ~source:(`Register (Register.resize target_reg.size reg))
           ]
       | LocAddr address ->
         let load_lines = 

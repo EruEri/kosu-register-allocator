@@ -260,7 +260,10 @@ module ColoredMake (S : OrderedType) (Color : ColoredType) = struct
            graph_acc)
          empty
 
-  let color_graph colorlist graph =
+  (**
+      color [graph] with the [colorlist] without trying to color node [immuable]
+  *)
+  let color_graph ~immuable colorlist graph =
     let colorset = ColorSet.of_list colorlist in
     let ordered_nodes =
       graph.nodes |> NodeSet.elements
@@ -281,7 +284,10 @@ module ColoredMake (S : OrderedType) (Color : ColoredType) = struct
                replace_color_node node acc_graph
            | Some color -> (
                match node.color with
-               | None ->
+               | None -> 
+                if List.exists (fun reg -> S.compare reg node.node = 0) immuable
+                  then acc_graph 
+              else
                    let node = { node with color = Some color } in
                    replace_color_node node acc_graph
                | Some c ->
