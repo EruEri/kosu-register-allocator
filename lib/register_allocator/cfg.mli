@@ -198,12 +198,12 @@ module type S = sig
     val of_cfg_details: delete_useless_stmt:bool -> Detail.cfg_detail -> cfg_liveness_detail
     end
 
-    module Inference_Graph : sig
+    module Interference_Graph : sig
         module IG : sig
             include module type of Graph.Make(VariableSig)
         end
 
-        val infer: Liveness.cfg_liveness_detail -> IG.graph
+        val interfere: Liveness.cfg_liveness_detail -> IG.graph
     end
 
     module GreedyColoring (ABI : ABI with type variable = VariableSig.t) :

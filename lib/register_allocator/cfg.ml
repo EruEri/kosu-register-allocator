@@ -189,12 +189,12 @@ module type S = sig
   val of_cfg_details: delete_useless_stmt:bool -> Detail.cfg_detail -> cfg_liveness_detail
   end
 
-  module Inference_Graph : sig
+  module Interference_Graph : sig
       module IG : sig
           include module type of Graph.Make(VariableSig)
       end
 
-      val infer: Liveness.cfg_liveness_detail -> IG.graph
+      val interfere: Liveness.cfg_liveness_detail -> IG.graph
   end
 
   module GreedyColoring (ABI : ABI with type variable = VariableSig.t) :
@@ -789,7 +789,7 @@ module Make (CfgS : CfgS): S
       }
   end
 
-  module Inference_Graph = struct
+  module Interference_Graph = struct
     module IG = Graph.Make (VariableSig)
 
     let infer_acc liveness_info graph =
@@ -843,7 +843,7 @@ module Make (CfgS : CfgS): S
           Constraint.union return_constraint acc_constr)
         cfg.blocks_liveness_details constraints
 
-    let infer (cfg : Liveness.cfg_liveness_detail) =
+    let interfere (cfg : Liveness.cfg_liveness_detail) =
       let open Basic in
       let open Detail in
       let open Liveness in
@@ -924,12 +924,12 @@ module Make (CfgS : CfgS): S
       end)
 
     let try_color base_graph variable color map = 
-      let open Inference_Graph in
+      let open Interference_Graph in
       let nodes = IG.egde_of variable base_graph in
       let conflicts = TypedIdentifierSet.filter (
         fun iv -> match VariableAbiMap.find_opt iv map with
         | None -> false
-        | Some icolor -> ABI.compare icolor color = 0
+        | Some icolor -> ABI.compare icolor color = 0 && CfgS.compare iv variable <> 0
       ) nodes in
 
       let are_all_parameters = conflicts |> TypedIdentifierSet.for_all (fun iv ->
@@ -945,16 +945,16 @@ module Make (CfgS : CfgS): S
           VariableAbiMap.remove iv inner_acc_map
         ) nodes map 
      
-    let does_live_in_same_moment v1 v2 infer_graph = 
-      let open Inference_Graph in
+    let _does_live_in_same_moment v1 v2 infer_graph = 
+      let open Interference_Graph in
       let edges = IG.egde_of v1 infer_graph in
       TypedIdentifierSet.mem v2 edges
 
 
     let base_coloration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list)
         ~available_color (cfg : Liveness.cfg_liveness_detail) =
-      let open Inference_Graph in
-      let base_graph = infer cfg in
+      let open Interference_Graph in
+      let base_graph = interfere cfg in
       let constraints = constraints cfg in
 
       let map = parameters |> List.to_seq |> VariableAbiMap.of_seq in
@@ -962,7 +962,7 @@ module Make (CfgS : CfgS): S
       let parameters_functions = 
         constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements 
         |> List.map Constraint.ParameterSet.elements |> List.flatten |> List.fold_left (fun acc_map (variable, index) ->
-          match VariableAbiMap.find_opt variable acc_map with
+          match VariableAbiMap.find_opt variable acc_map with (* check if the parameter function variable has already been colored *)
           | None -> begin match List.nth_opt ABI.arguments_register index with
             | None -> acc_map
             | Some color -> 
@@ -1000,7 +1000,7 @@ module Make (CfgS : CfgS): S
       
 
       let decolaration ~(parameters : (TypedIdentifierSet.elt * ABI.t) list) (cfg : Liveness.cfg_liveness_detail) (cg: ColoredGraph.colored_graph) = 
-        let constraints = Inference_Graph.constraints cfg in
+        let constraints = Interference_Graph.constraints cfg in
         let return_strategies = variable_return_set cfg in
 
         (* let parameters_functions = constraints.inner_call_parameters |> Constraint.ParameterSetSet.elements |> List.map Constraint.ParameterSet.elements |> List.flatten  in

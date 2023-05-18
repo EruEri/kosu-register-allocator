@@ -69,4 +69,4 @@ let liveness_of_san_tyfunction san_tyfunction =
 
 let inference_graph_san_tyfunction san_tyfunction = 
   let liveness = liveness_of_san_tyfunction san_tyfunction in
-  Inference_Graph.infer liveness
+  Interference_Graph.interfere liveness
