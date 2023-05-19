@@ -402,23 +402,30 @@ module Make (CfgS : CfgS): S
       basic_block_cfg_statement_list ~killed:TypedIdentifierSet.empty
         ~generated:TypedIdentifierSet.empty basic_block.cfg_statements
 
-    let rec basic_block_output_var basic_block_set basic_block =
+    let rec basic_block_output_var_aux ~visited basic_block_set basic_block =
       match basic_block.ending with
       | Some (Bbe_return _) -> TypedIdentifierSet.empty
       | _ ->
           StringSet.fold
             (fun elt acc ->
+              if 
+                Hashtbl.mem visited elt then acc 
+              else
+              let () = Hashtbl.add visited elt () in
               let follow_block =
                 fetch_basic_block_from_label elt basic_block_set
               in
               let out_vars =
-                basic_block_output_var basic_block_set follow_block
+                basic_block_output_var_aux ~visited basic_block_set follow_block
               in
               let follow_basic_block_input =
                 basic_block_input_var ~out_vars follow_block
               in
               TypedIdentifierSet.union acc follow_basic_block_input)
             basic_block.followed_by TypedIdentifierSet.empty
+
+    let basic_block_output_var basic_block_set basic_block =
+      basic_block_output_var_aux ~visited:(Hashtbl.create 11) basic_block_set basic_block
   end
 
   module Detail = struct
